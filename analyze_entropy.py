@@ -101,7 +101,7 @@ def get_bigram(logit_list: List[int]):
     return input_bigram
 
 
-def analyze_prediction_entropy(pred_dist: numpy.ndarray, input_doc: numpy.ndarray, eos_tokens = [50256]):
+def analyze_prediction_entropy(pred_dist: numpy.ndarray, input_doc: numpy.ndarray, eos_tokens=[50256]):
     # 1) the general entropy distribution of all timesteps. get a sample of high/low entropy word prediction on two datasets.
     # 2) how entropy relates to the relative position of a sentence.
     # 3) characterize the copy/content selection/ EOS or not modes.
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     if 'pegasus' in MODEL_NAME:
         from transformers import PegasusTokenizer
         bpe_tokenizer = PegasusTokenizer.from_pretrained(MODEL_NAME)
-        EOS_TOK_IDs =  [106, bpe_tokenizer.eos_token_id] # <n>
+        EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
     else:
         raise NotImplementedError
     try:
@@ -173,10 +173,8 @@ if __name__ == '__main__':
                 pred_real_dist = data['pred_distributions']
                 pred_real_dist = numpy.exp(pred_real_dist)
                 input_doc = data['input_doc']
-
                 input_doc_mask = data['input_doc_mask']
                 effective_input_len = int(input_doc_mask.sum())
-
                 input_doc = input_doc[:effective_input_len]
             out = analyze_prediction_entropy(pred_real_dist, input_doc, EOS_TOK_IDs)
             outputs += out

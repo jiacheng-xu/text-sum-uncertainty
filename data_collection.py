@@ -5,14 +5,14 @@ from util import auto_detach_to_cpu, get_random_string
 import numpy as np
 import pickle
 
-# full_data = True  # shows everything include attention and hidden states
-full_data = False
+full_data = True  # shows everything include attention and hidden states
+# full_data = False
 
-# MODEL_NAME = "google/pegasus-cnn_dailymail"  # "google/pegasus-xsum"
-MODEL_NAME = "google/pegasus-xsum"
+MODEL_NAME = "google/pegasus-cnn_dailymail"  # "google/pegasus-xsum"
+# MODEL_NAME = "google/pegasus-xsum"
 
-# DATA_NAME = "cnn_dailymail"
-DATA_NAME = 'xsum'
+DATA_NAME = "cnn_dailymail"
+# DATA_NAME = 'xsum'
 
 PROB_META_DIR = '/mnt/data0/jcxu/data/prob_gpt'
 spec_name = f"d_{DATA_NAME}-m_{MODEL_NAME[-5:]}-full{int(full_data)}"

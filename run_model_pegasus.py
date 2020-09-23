@@ -12,6 +12,8 @@ import logging
 class SumGen(torch.nn.Module):
     def __init__(self, model, tokenizer: PreTrainedTokenizer,
                  use_cache=True, max_len=30, full_data=False):
+        # BART encoder outputs: [x, encoder_states, all_attentions]
+        # BART decoder outputs: [x, next_cache, all_hidden_states, all_self_attns, all_enc_self_attns]
         super().__init__()
         self.model = model
         self.output_attentions = True
@@ -23,6 +25,8 @@ class SumGen(torch.nn.Module):
         self.encoder = self.model.get_encoder()
         self.recorder = DataCollector(full_data=full_data)
         self.logsoftmax = torch.nn.LogSoftmax(-1)
+
+        self.return_dict = False
 
     def save_data(self):
         pass
@@ -41,7 +45,7 @@ class SumGen(torch.nn.Module):
         decoder_input_ids = torch.LongTensor(decoded).to(device)
         past_key_values = None
         encoder_outputs = self.encoder(input_doc, attention_mask=input_mask,
-                                       return_dict=True)
+                                       return_dict=self.return_dict)
 
         expanded_batch_idxs = (
             torch.arange(batch_size)
@@ -50,9 +54,13 @@ class SumGen(torch.nn.Module):
                 .view(-1)
                 .to(device)
         )
-        encoder_outputs["last_hidden_state"] = encoder_outputs.last_hidden_state.index_select(
-            0, expanded_batch_idxs
-        )
+        if self.return_dict:
+            encoder_outputs["last_hidden_state"] = encoder_outputs.last_hidden_state.index_select(0,
+                                                                                                  expanded_batch_idxs)
+        else:
+            expanded_last_hidden_state = encoder_outputs[0].index_select(0, expanded_batch_idxs)  # not sure why 0....
+            assert len(encoder_outputs) == 1
+            encoder_outputs = (expanded_last_hidden_state,)
         self.recorder.add_input_doc(input_doc, input_mask)
         while cur_len < self.max_len and (not all(has_eos)):
             logging.debug(f"Current step: {cur_len}")
@@ -95,25 +103,31 @@ class SumGen(torch.nn.Module):
                                      output_attentions=self.output_attentions,
                                      output_hidden_states=self.output_hidden_states,
                                      use_cache=self.use_cache,
-                                     return_dict=True)
-        if 'decoder_hidden_states' in outputs:
-            pass
+                                     return_dict=self.return_dict)  # first decoder ouptuts, then encoder outputs
+        if self.return_dict:
+            logits = outputs['logits']
+            next_cache = outputs['past_key_values']
+            dec_enc_attns = None
+        else:
+            logits = outputs[0]  # batch, 1, vocab size
+            next_cache, decoder_hidden_states, dec_dec_attns, dec_enc_attns = outputs[1], outputs[2], \
+                                                                              outputs[3], outputs[4]
 
-        if 'decoder_attentions' in outputs:
-            pass
+        # logits are raw score before softmax
+        log_prob = self.logsoftmax(logits[:, -1, :])
+        if dec_enc_attns:
+            self.recorder.add_step(pred_distribution=log_prob,
+                                   all_hidden_states=decoder_hidden_states, attentions=dec_enc_attns)
+        else:
+            self.recorder.add_step(pred_distribution=log_prob)
 
-        if 'logits' in outputs:
-            # logits are raw score before softmax
-            logit = self.logsoftmax(outputs['logits'][:, -1, :])
-            self.recorder.add_step(pred_distribution=logit)
-
-        next_token_logits = outputs.logits[:, -1, :]
+        next_token_logits = logits[:, -1, :]
         next_token = torch.argmax(next_token_logits, dim=-1)
         self.recorder.add_logit(next_token)
         cur_next_token = next_token.unsqueeze(-1)
         cur_decoded = cur_next_token.tolist()
-        if "past_key_values" in outputs:
-            past_key_values = outputs.past_key_values
+
+        past_key_values = next_cache
 
         decoder_input_ids = torch.cat([decoder_input_ids, cur_next_token], dim=-1)
 
@@ -124,7 +138,7 @@ if __name__ == '__main__':
     print("Running experiment")
     from data_collection import full_data, MODEL_NAME, DATA_NAME, CUR_DIR
 
-    max_sample_num = 1770
+    max_sample_num = 177
     batch_size = 10
     max_len = 35 if DATA_NAME == 'xsum' else 100
     DATASET_DIR = "/mnt/data0/jcxu/datasets"
@@ -137,7 +151,8 @@ if __name__ == '__main__':
                                batch_size=batch_size,
                                max_length=300, max_sample_num=max_sample_num)
     model, tokenizer = load_PEGASUS(MODEL_NAME)
-    device = torch.device('cuda:0')
+    # device = torch.device('cuda:0')
+    device = torch.device('cpu')
     model = model.to(device)
     summary_gen_model = SumGen(model=model, tokenizer=tokenizer, full_data=full_data, max_len=max_len)
     for batch in data_generator:
