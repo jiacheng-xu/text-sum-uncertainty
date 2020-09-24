@@ -8,7 +8,7 @@ import logging.config
 
 level = logging.DEBUG
 # create logger
-logging.basicConfig(filename='example.html', filemode='w')
+logging.basicConfig(filename=f"example_cnndm.html", filemode='w')
 logger = logging.getLogger('sum')
 logger.setLevel(logging.DEBUG)
 

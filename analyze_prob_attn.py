@@ -1,12 +1,6 @@
 import statistics
 
 from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
-
-
-def open_data():
-    pass
-
-
 import os, random, pickle
 import numpy as np
 
@@ -204,12 +198,6 @@ def visualize_tfidf(input_doc, idf):
     print(" ".join(outputs))
 
 
-# TLE: T:decoding timesteps. L:layer and head(16^2 or 12^2), E:encoding document length
-def convert_enc_attn(attentions: List):
-    attentions = np.stack([np.stack([np.squeeze(head, axis=1) for head in layer]) for layer in attentions])  # 16,1,E
-    T, num_layer, num_head, Enc_len = attentions.shape
-    A = np.reshape(attentions, (T, num_layer * num_head, Enc_len))
-    return A
 
 
 import matplotlib.pyplot as plt
@@ -222,8 +210,11 @@ def draw_plot(data):
         axs[x, y].scatter(data[idx][0], data[idx][1])
     plt.show()
 
+
 import matplotlib
 import matplotlib.pyplot as plt
+
+
 def colorize(words, color_array):
     # words is a list of words
     # color_array is an array of numbers between 0 and 1 of length equal to words
@@ -235,12 +226,15 @@ def colorize(words, color_array):
         colored_string += template.format(color, '&nbsp' + word + '&nbsp')
     return colored_string
 
+
 def visualize_distribution(input_doc, distb):
     words = 'The quick brown fox jumps over the lazy dog'.split()
     color_array = np.random.rand(len(words))
     s = colorize(words, color_array)
 
     print(s)
+
+
 def attention_entrance(attentions: List[List[np.ndarray]], pred_distribution, logits: np.ndarray,
                        input_doc: np.ndarray, BOS_TOKEN, layer_num):
     # print("Example ..")
