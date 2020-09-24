@@ -145,25 +145,48 @@ def analyze_attention_step(attn, cur_t, inp_len, last_inp, cur_inp, cur_pred, ne
 from scipy.stats import entropy
 
 
-def compute_tf(tle_mat):
+def compute_tf(tle_mat, num_layer=-1):
     T, L, E = tle_mat.shape
-    sum_over_layer = np.sum(tle_mat, axis=1)  # T, E
-    return sum_over_layer
+    if num_layer == -1:
+        sum_over_layer = np.sum(tle_mat, axis=1)  # T, E
+        return sum_over_layer
+    else:
+        return tle_mat[:, num_layer, :]
 
 
-def compute_idf(tle_mat, sparsity=0.9, epsilon=1e-5):
+def compute_idf(tle_mat, sparsity=0.9, epsilon=1e-5, num_of_lay=-1):
     # sparsity: <sparsity of cells are counted as 1
     T, L, E = tle_mat.shape
     # return IDF(w_i, T)
     # result = np.zeros((E))
-    sum_over_layer = np.sum(tle_mat, axis=1)  # T, E
+    if num_of_lay == -1:
+        sum_over_layer = np.sum(tle_mat, axis=1)  # T, E
+        base = np.ones((E)) * L
+    else:
+        sum_over_layer = tle_mat[:, num_of_lay, :]
+        base = np.ones((E))
 
     prob_threshold = np.quantile(sum_over_layer.flatten(), q=sparsity)
     cnt_flag = np.greater(sum_over_layer, prob_threshold).astype(int)  # T, E
     cnt = np.sum(cnt_flag, axis=0)  # E
-    base = np.ones((E)) * T
-    ratio = base / (epsilon + cnt)
+
+    ratio = (epsilon + base) / (epsilon + cnt)
     return np.log(ratio)
+
+
+from scipy.special import softmax
+
+np.set_printoptions(precision=5)
+
+
+def compute_entropy_for_scores(inp, axis=-1):
+    inp = inp + np.min(inp)
+    sum_of_all = np.sum(inp, axis=axis)
+    dist_inp = inp / sum_of_all
+
+    # dist_inp = softmax(inp)
+    ent = entropy(dist_inp)
+    return ent
 
 
 def visualize_tfidf(input_doc, idf):
@@ -189,55 +212,114 @@ def convert_enc_attn(attentions: List):
     return A
 
 
+import matplotlib.pyplot as plt
+
+
+def draw_plot(data):
+    fig, axs = plt.subplots(4, 4, figsize=(10, 10))
+    for idx, d in enumerate(data):
+        x, y = int(idx / 4), idx % 4
+        axs[x, y].scatter(data[idx][0], data[idx][1])
+    plt.show()
+
+import matplotlib
+import matplotlib.pyplot as plt
+def colorize(words, color_array):
+    # words is a list of words
+    # color_array is an array of numbers between 0 and 1 of length equal to words
+    cmap = matplotlib.cm.get_cmap('RdBu')
+    template = '<span class="barcode"; style="color: black; background-color: {}">{}</span>'
+    colored_string = ''
+    for word, color in zip(words, color_array):
+        color = matplotlib.colors.rgb2hex(cmap(color)[:3])
+        colored_string += template.format(color, '&nbsp' + word + '&nbsp')
+    return colored_string
+
+def visualize_distribution(input_doc, distb):
+    words = 'The quick brown fox jumps over the lazy dog'.split()
+    color_array = np.random.rand(len(words))
+    s = colorize(words, color_array)
+
+    print(s)
 def attention_entrance(attentions: List[List[np.ndarray]], pred_distribution, logits: np.ndarray,
-                       input_doc: np.ndarray, BOS_TOKEN):
-    print("Example ..")
+                       input_doc: np.ndarray, BOS_TOKEN, layer_num):
+    # print("Example ..")
     timesteps = len(attentions)
     document_len = input_doc.shape[0]
     input_doc = input_doc.astype(np.int).tolist()
     logits = np.argmax(pred_distribution, axis=-1).tolist()
     dec_inp_logits = [BOS_TOKEN] + logits[:-1]
-    pred_distribution = np.exp(pred_distribution)
+    pred_distribution = np.exp(pred_distribution)  # time step, vocab size
+    pred_ent = entropy(pred_distribution, axis=-1)
     all_res = []
-    A = convert_enc_attn(attentions)  # A is the TLE matrix
+    if layer_num == -1:
+        A = convert_enc_attn(attentions)  # A is the TLE matrix
+    else:
+        attentions = np.stack(
+            np.stack([np.squeeze(head, axis=1) for head in attentions[layer_num]]))
+        T, num_head, Enc_len = attentions.shape
+        A = np.reshape(attentions, (T, 1 * num_head, Enc_len))
+
     T, L, E = A.shape
     idf = compute_idf(A)  # E
+    """
+    
     print("------IDF--------   ")
     visualize_tfidf(input_doc, idf)
     print("------TF IDF--------")
+    """
     tf = compute_tf(A)  # T, E
     expand_idf = np.expand_dims(idf, axis=0)
 
     tfidf = tf * expand_idf
+    # tfidf = tf
+
     for t in range(T):
         if logits[t] == bpe_tokenizer.eos_token_id:
             break
-        print(f"{t} - {bpe_tokenizer.decode(logits[t])}")
-        visualize_tfidf(input_doc, tfidf[t])
-    exit()
-    for t in range(timesteps):
-        attention = attentions[t]
-        ent = entropy(pred_distribution[t])
-
-        cur_inp = dec_inp_logits[t]
-        cur_pred = logits[t]
-        try:
-            next_pred = logits[t + 1]
-        except IndexError:
-            next_pred = None
-        if t - 1 >= 0:
-            last_inp = dec_inp_logits[t - 1]
-        else:
-            last_inp = None
-
-        rt_rs = analyze_attention_step(attention, t, document_len, last_inp, cur_inp, cur_pred, next_pred, ent,
-                                       input_doc,
-                                       dec_inp_logits)
-        all_res += rt_rs
+        # print(f"{t} - {bpe_tokenizer.decode(logits[t])}")
+        cur_attn_ent = compute_entropy_for_scores(tfidf[t])
+        cur_pred_ent = pred_ent[t]
+        all_res.append((cur_attn_ent, cur_pred_ent))
+        # print(f"{cur_attn_ent}\t{cur_pred_ent}")
+        # visualize_tfidf(input_doc, tfidf[t])
     return all_res
+    # for t in range(timesteps):
+    #     attention = attentions[t]
+    #     ent = entropy(pred_distribution[t])
+    #
+    #     cur_inp = dec_inp_logits[t]
+    #     cur_pred = logits[t]
+    #     try:
+    #         next_pred = logits[t + 1]
+    #     except IndexError:
+    #         next_pred = None
+    #     if t - 1 >= 0:
+    #         last_inp = dec_inp_logits[t - 1]
+    #     else:
+    #         last_inp = None
+    #
+    #     rt_rs = analyze_attention_step(attention, t, document_len, last_inp, cur_inp, cur_pred, next_pred, ent,
+    #                                    input_doc,
+    #                                    dec_inp_logits)
+    #     all_res += rt_rs
+    # return all_res
 
 
 import json
+
+
+def run_trial(lay_num, files):
+    results = []
+    for f in files:
+        with open(os.path.join(CUR_DIR, f), 'rb') as fd:
+            data = pickle.load(fd)
+        result = attention_entrance(data['attentions'], data['pred_distributions'], data['logits'], data['input_doc'],
+                                    BOS_TOKEN=bos_token_id, layer_num=lay_num)
+        results += result
+    result_in_arry = np.asarray(results)
+    return result_in_arry.T
+
 
 if __name__ == '__main__':
     print("Looking at attention")
@@ -250,20 +332,34 @@ if __name__ == '__main__':
         bos_token_id = 0
     else:
         raise NotImplementedError
-
+    # visualize_distribution(None,None)
     files = os.listdir(CUR_DIR)
     random.shuffle(files)
-    # files = files[:20]
+    files = files[:20]
+
+    if True:
+        all_outputs = []
+        for layer_num in range(16):
+            print(f"Layer :{layer_num}")
+            output_array = run_trial(layer_num, files)
+            all_outputs.append(output_array)
+
+        draw_plot(all_outputs)
+
+    exit()
     results = []
+    layer_num = 0
+
     for f in files:
         with open(os.path.join(CUR_DIR, f), 'rb') as fd:
             data = pickle.load(fd)
         result = attention_entrance(data['attentions'], data['pred_distributions'], data['logits'], data['input_doc'],
-                                    BOS_TOKEN=bos_token_id)
+                                    BOS_TOKEN=bos_token_id, layer_num=layer_num)
         results += result
-
-    print("Start writing analysis result to disk...")
-    print(len(results))
-    with open(os.path.join(PROB_META_DIR, f"{spec_name}_attention.json"), 'w') as fd:
-        json.dump(results, fd)
-        print(f'Done writing to disk: {os.path.join(PROB_META_DIR, f"{spec_name}_attention.json")}')
+    result_in_arry = np.asarray(results)
+    draw_plot(result_in_arry.T, layer_num)
+    # print("Start writing analysis result to disk...")
+    # print(len(results))
+    # with open(os.path.join(PROB_META_DIR, f"{spec_name}_attention.json"), 'w') as fd:
+    #     json.dump(results, fd)
+    #     print(f'Done writing to disk: {os.path.join(PROB_META_DIR, f"{spec_name}_attention.json")}')
