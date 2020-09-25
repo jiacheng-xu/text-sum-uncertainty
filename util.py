@@ -42,6 +42,16 @@ from transformers import BartTokenizer
 import random
 import string
 
+from typing import  List
+# TLE: T:decoding timesteps. L:layer and head(16^2 or 12^2), E:encoding document length
+def convert_enc_attn(attentions: List, merge_layer_head: bool = True):
+    attentions = np.stack([np.stack([np.squeeze(head, axis=1) for head in layer]) for layer in attentions])  # 16,1,E
+    if merge_layer_head:
+        T, num_layer, num_head, Enc_len = attentions.shape
+        A = np.reshape(attentions, (T, num_layer * num_head, Enc_len))
+        return A
+    else:
+        return attentions
 
 def format_output(d):
     if 'T_R_1' in d:

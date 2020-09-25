@@ -1,10 +1,12 @@
 import numpy as np
 from typing import List
 import scipy
+
+from analyze_prob_attn import colorize, compute_idf, visualize_tfidf
 from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
 import os, random
 
-from util import logger
+from util import convert_enc_attn, logger
 
 
 def plot_single_head_attention(attention, src_seq, effective_doc_len, k=5):
@@ -128,17 +130,6 @@ def meta_analyze_step(t, pred_distribution: np.ndarray,
         logger.info("<br><br>")
 
 
-# TLE: T:decoding timesteps. L:layer and head(16^2 or 12^2), E:encoding document length
-def convert_enc_attn(attentions: List, merge_layer_head: bool = True):
-    attentions = np.stack([np.stack([np.squeeze(head, axis=1) for head in layer]) for layer in attentions])  # 16,1,E
-    if merge_layer_head:
-        T, num_layer, num_head, Enc_len = attentions.shape
-        A = np.reshape(attentions, (T, num_layer * num_head, Enc_len))
-        return A
-    else:
-        return attentions
-
-
 import pickle
 
 from scipy.stats import entropy
@@ -163,16 +154,29 @@ if __name__ == '__main__':
     for f in files:
         with open(os.path.join(CUR_DIR, f), 'rb') as fd:
             data = pickle.load(fd)
+
         attentions, pred_distb, logits, input_doc = data['attentions'], data['pred_distributions'], data['logits'], \
                                                     data['input_doc']
+
         timesteps = len(attentions)
-        attentions = convert_enc_attn(attentions, merge_layer_head=False)  # T,L,L,E
+        attentions_tlle = convert_enc_attn(attentions, merge_layer_head=False)  # T,L,L,E
+
+        attention_tle = convert_enc_attn(attentions, merge_layer_head=True)  # T,L,E
+
         document_len = input_doc.shape[0]
         input_doc = input_doc.astype(np.int).tolist()
         logits = logits.tolist()
         dec_inp_logits = [BOS_TOKEN] + logits[:-1]
         pred_distb = np.exp(pred_distb)  # time step, vocab size
         pred_ent = entropy(pred_distb, axis=-1)
+
+        idf = compute_idf(attention_tle)  # E
+        logger.info("------IDF------")
+        out_tuple = visualize_tfidf(input_doc, idf, bpe_tokenizer)
+        idxs, words, colors = [x[0] for x in out_tuple], [x[1] for x in out_tuple], [x[2] for x in out_tuple]
+        out_str = colorize(words=words, color_array=colors, index_array=idxs)
+        logger.info(out_str)
+
         for t in range(timesteps):
-            meta_analyze_step(t, pred_distb[t], attentions[t], input_doc, logits, EOS_TOKENs=EOS_TOK_IDs)
+            meta_analyze_step(t, pred_distb[t], attentions_tlle[t], input_doc, logits, EOS_TOKENs=EOS_TOK_IDs)
         exit()

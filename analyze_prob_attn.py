@@ -12,6 +12,8 @@ import scipy
 
 from collections import Counter
 
+from util import convert_enc_attn, logger
+
 index_of_bpe = 1
 
 
@@ -147,6 +149,10 @@ def compute_tf(tle_mat, num_layer=-1):
     else:
         return tle_mat[:, num_layer, :]
 
+def get_ban_positions(idf_flag):
+    result = np.where(idf_flag == 0)[0].tolist()
+    return result
+
 
 def compute_idf(tle_mat, sparsity=0.9, epsilon=1e-5, num_of_lay=-1):
     # sparsity: <sparsity of cells are counted as 1
@@ -155,7 +161,7 @@ def compute_idf(tle_mat, sparsity=0.9, epsilon=1e-5, num_of_lay=-1):
     # result = np.zeros((E))
     if num_of_lay == -1:
         sum_over_layer = np.sum(tle_mat, axis=1)  # T, E
-        base = np.ones((E)) * L
+        base = np.ones((E)) * T
     else:
         sum_over_layer = tle_mat[:, num_of_lay, :]
         base = np.ones((E))
@@ -163,10 +169,22 @@ def compute_idf(tle_mat, sparsity=0.9, epsilon=1e-5, num_of_lay=-1):
     prob_threshold = np.quantile(sum_over_layer.flatten(), q=sparsity)
     cnt_flag = np.greater(sum_over_layer, prob_threshold).astype(int)  # T, E
     cnt = np.sum(cnt_flag, axis=0)  # E
-
+    # non_active_positions = np.equal(cnt,0)
     ratio = (epsilon + base) / (epsilon + cnt)
-    return np.log(ratio)
+    idf = np.log(ratio)
 
+    # low_thres = np.quantile(idf, 0.05)
+    # logger.info(f"Cut threshold: {low_thres}")
+    # idf_flag = np.greater(idf, low_thres).astype(int)
+
+    idf_flag = np.greater(idf, np.log(4)).astype(int)
+    # high_thres = np.quantile(idf, 0.7)
+    # print(f"{high_thres} -- {low_thres}")
+    # samples = np.random.choice(idf, 200)
+    # for s in samples:
+    #     print(s)
+
+    return idf_flag
 
 from scipy.special import softmax
 
@@ -183,21 +201,28 @@ def compute_entropy_for_scores(inp, axis=-1):
     return ent
 
 
-def visualize_tfidf(input_doc, idf):
+def visualize_tfidf(input_doc, idf, bpe_tokenizer, max_val=12):
     # print("IDF visualization: NUMBER higher = common words")
     idf_list = idf.tolist()
     outputs = []
-    for (inp, val) in zip(input_doc, idf_list):
+    L = range(len(input_doc))
+    for (idx, inp, val) in zip(L, input_doc, idf_list):
         dec_tok = bpe_tokenizer.decode(inp)
         if inp == bpe_tokenizer.pad_token_id:
             continue
-        if val > 1:
-            outputs.append(f"{dec_tok}_{int(val)}")
+        if val > 0 and val < max_val:
+            outputs.append(
+                (idx, dec_tok, val / max_val)
+            )
+        elif val > 0:
+            outputs.append(
+                (idx, f"_{dec_tok}_", 0)
+            )
         else:
-            outputs.append(f"{dec_tok}")
-    print(" ".join(outputs))
-
-
+            outputs.append(
+                (idx, dec_tok, 0)
+            )
+    return outputs
 
 
 import matplotlib.pyplot as plt
@@ -215,15 +240,19 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def colorize(words, color_array):
+def colorize(words, color_array, index_array=None):
     # words is a list of words
     # color_array is an array of numbers between 0 and 1 of length equal to words
-    cmap = matplotlib.cm.get_cmap('RdBu')
+    cmap = matplotlib.cm.get_cmap('YlGn')
+    style_underscript = 'color:gray;font-size:10px'
+    if index_array is None:
+        index_array = range(len(words))
     template = '<span class="barcode"; style="color: black; background-color: {}">{}</span>'
     colored_string = ''
-    for word, color in zip(words, color_array):
+    for idx, word, color in zip(index_array, words, color_array):
         color = matplotlib.colors.rgb2hex(cmap(color)[:3])
-        colored_string += template.format(color, '&nbsp' + word + '&nbsp')
+        print_word = f" {word} <sub style='{style_underscript}'> {idx} </sub> "
+        colored_string += template.format(color, '&nbsp' + print_word + '&nbsp')
     return colored_string
 
 
@@ -247,7 +276,7 @@ def attention_entrance(attentions: List[List[np.ndarray]], pred_distribution, lo
     pred_ent = entropy(pred_distribution, axis=-1)
     all_res = []
     if layer_num == -1:
-        A = convert_enc_attn(attentions)  # A is the TLE matrix
+        A = convert_enc_attn(attentions, True)  # A is the TLE matrix
     else:
         attentions = np.stack(
             np.stack([np.squeeze(head, axis=1) for head in attentions[layer_num]]))
