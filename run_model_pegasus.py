@@ -5,7 +5,7 @@ from typing import Optional, List
 from argparse import Namespace
 
 from data_collection import DataCollector
-from util import load_PEGASUS, load_data
+from util import load_PEGASUS, load_data, parse_arg
 import logging
 
 
@@ -136,26 +136,30 @@ class SumGen(torch.nn.Module):
 
 if __name__ == '__main__':
     print("Running experiment")
-    from data_collection import full_data, MODEL_NAME, DATA_NAME, CUR_DIR
+    args = parse_arg()
 
-    max_sample_num = 177
-    batch_size = 10
-    max_len = 35 if DATA_NAME == 'xsum' else 100
-    DATASET_DIR = "/mnt/data0/jcxu/datasets"
+    batch_size = 17 if args.data_name == 'xsum' else 15
+    max_len = 30 if args.data_name == 'xsum' else 80
 
-    split = 'test'
+    split = 'train'
 
-    data_generator = load_data(DATASET_DIR, DATA_NAME,
-                               tokenizer_name=MODEL_NAME,
+    data_generator = load_data(args.dataset_dir, args.data_name,
+                               tokenizer_name=args.model_name,
                                split=split,
                                batch_size=batch_size,
-                               max_length=300, max_sample_num=max_sample_num)
-    model, tokenizer = load_PEGASUS(MODEL_NAME)
-    # device = torch.device('cuda:0')
-    device = torch.device('cpu')
+                               max_length=args.enc_len,
+                               max_sample_num=args.max_sample_num)
+    model, tokenizer = load_PEGASUS(args.model_name)
+    device = torch.device(args.device)
     model = model.to(device)
-    summary_gen_model = SumGen(model=model, tokenizer=tokenizer, full_data=full_data, max_len=max_len)
+    summary_gen_model = SumGen(model=model, tokenizer=tokenizer,
+                               full_data=args.feature,
+                               max_len=max_len)
+    total_cnt = 0
     for batch in data_generator:
+        batch_sz = batch['input_ids'].size()[0]
+        total_cnt += batch_sz
+        print(f"Total count: {total_cnt}")
         input_ids = batch['input_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
         tgt = batch['labels'].to(device)

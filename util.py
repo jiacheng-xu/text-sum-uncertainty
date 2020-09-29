@@ -42,7 +42,9 @@ from transformers import BartTokenizer
 import random
 import string
 
-from typing import  List
+from typing import List
+
+
 # TLE: T:decoding timesteps. L:layer and head(16^2 or 12^2), E:encoding document length
 def convert_enc_attn(attentions: List, merge_layer_head: bool = True):
     attentions = np.stack([np.stack([np.squeeze(head, axis=1) for head in layer]) for layer in attentions])  # 16,1,E
@@ -52,6 +54,7 @@ def convert_enc_attn(attentions: List, merge_layer_head: bool = True):
         return A
     else:
         return attentions
+
 
 def format_output(d):
     if 'T_R_1' in d:
@@ -166,6 +169,44 @@ def load_PEGASUS(mname):
     model = PegasusForConditionalGeneration.from_pretrained(mname)
     tokenizer = PegasusTokenizer.from_pretrained(mname)
     return model, tokenizer
+
+
+import argparse
+
+
+def parse_arg():
+    parser = argparse.ArgumentParser(description="Experiment for Text Sum Uncertainty for PEGASUS model.")
+    parser.add_argument("--model_name", type=str,
+                        help="The name of the PEGASUS model. Expect: google/pegasus-cnn_dailymail or google/pegasus-xsum.",
+                        default='google/pegasus-cnn_dailymail')
+    parser.add_argument("--data_name", help="Name of the dataset to use, xsum or cnn_dailymail.",
+                        default='cnn_dailymail')
+    parser.add_argument('--full_data', dest='feature', action='store_true')
+    parser.add_argument('--min_data', dest='feature', action='store_false')
+    parser.set_defaults(feature=False)
+    parser.add_argument('--prob_meta_dir',
+                        default='/mnt/data0/jcxu/data/prob_gpt',
+                        help='Location to store outputs files.')
+    parser.add_argument('--max_sample_num', default=2000,
+                        help='The max number of samples of the experiment.')
+    parser.add_argument('--batch_sz', type=int, default=17, help='Batch size.'
+                        )
+    parser.add_argument('--max_len', default=30, help='Max decoding sequence length.')
+    parser.add_argument('--enc_len', default=400, help='Length of src document to encode.')
+    parser.add_argument('--dataset_dir', help='Location to cache/load the dataset.', default="/mnt/data0/jcxu/datasets")
+    parser.add_argument('--split', default='test', help='Which part of the dataset split to use.')
+    parser.add_argument('--device', default='cuda:0')
+    args = parser.parse_args()
+
+    spec_name = f"d_{args.data_name}-m_{args.model_name[-5:]}-full{int(args.feature)}"
+    CUR_DIR = os.path.join(args.prob_meta_dir, spec_name)
+    if not os.path.isdir(CUR_DIR):
+        os.mkdir(CUR_DIR)
+        logging.info(f"Making {CUR_DIR}")
+    print(f"======= {CUR_DIR} =======")
+    args.cur_dir = CUR_DIR
+    args.spec_name = spec_name
+    return args
 
 
 if __name__ == '__main__':

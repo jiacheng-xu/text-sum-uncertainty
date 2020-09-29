@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 
 import json, math, seaborn
 import statistics
@@ -60,11 +61,12 @@ debug = True
 debug = False
 
 
-def _read_data(dir, data_name, SEPS):
-    data = read_json_file(os.path.join(dir, f"{data_name}_entropy.json"))
+def _read_data(dir, spec_name, SEPS):
+    data = read_json_file(os.path.join(dir, f"{spec_name}_entropy.json"))
     data_for_panda = []
     bigram_entropies, not_bigram_entropies = [], []
     random.shuffle(data)
+    print(f"Len of data: {len(data)} Name: {spec_name}")
     if debug:
         data = data[:1000]
     for d in data:
@@ -206,9 +208,9 @@ import math
 from matplotlib.axes._axes import Axes
 
 
-def draw_x_rel_postion_y_entropy(dir, SEPS=10, FIG_SIZE_x=10, FIG_SIZE_y=5):
-    cnndm_df, _, _ = _read_data(dir, 'cnndm', SEPS)
-    xsum_df, _, _ = _read_data(dir, 'xsum', SEPS)
+def draw_x_rel_postion_y_entropy(dir, cnndm_spec_name, xsum_spec_name, SEPS=20, FIG_SIZE_x=10, FIG_SIZE_y=5):
+    cnndm_df, _, _ = _read_data(dir, cnndm_spec_name, SEPS)
+    xsum_df, _, _ = _read_data(dir, xsum_spec_name, SEPS)
     colorblind = sns.color_palette("coolwarm", 10)[::-1]
 
     keys = ['Entropy', 'Top1 Prob', 'token', 'Bigram ', 'InTrigramOfDocument', 'Relative Position']
@@ -267,7 +269,10 @@ def draw_fig_2():
     # plt.rcParams["font.weight"] = "light"
     # plt.rcParams.update({'font.size': 15})
     # plt.rcParams["font.family"] = "Times New Roman"
-    draw_x_rel_postion_y_entropy(dir_datadrive, FIG_SIZE_x=GLOBAL_FIGURE_WIDTH)
+
+    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full0'
+    xsum_spec_name = 'd_xsum-m_-xsum-full0'
+    draw_x_rel_postion_y_entropy(dir_datadrive, cnndm_spec_name, xsum_spec_name, SEPS=5,FIG_SIZE_x=GLOBAL_FIGURE_WIDTH)
     fig.tight_layout()
     plt.savefig(f"x_rel_postion_y_entropy.pdf", dpi=dpi)
 
@@ -496,6 +501,6 @@ def draw_figure3():
 
 
 if __name__ == '__main__':
-    # draw_fig_1()
+    draw_fig_1()
     draw_fig_2()
     # draw_figure3()

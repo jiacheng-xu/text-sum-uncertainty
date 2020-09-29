@@ -1,8 +1,8 @@
 import os, random
 
 from analyze_prob_attn import compute_idf, get_ban_positions
-from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
-from util import convert_enc_attn
+# from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
+from util import convert_enc_attn, parse_arg
 
 
 def get_ys(t, logits, BOS_token=0):
@@ -87,24 +87,35 @@ def plot_hist(val_ent_pairs, title):
     plt.show()
 
 
-def plot_box(val_ent_pairs, title=None,step_size=.25):
+import seaborn as sns
+
+
+def plot_box(val_ent_pairs, title=None, step_size=.25):
     max_pred_ent = max([p[1] for p in val_ent_pairs])
     # segs = np.linspace(0, max_pred_ent + 0.1, num=20).tolist()
-    segs = np.arange(0,8,step_size).tolist()
+    segs = np.arange(0, 8, step_size).tolist()
+    colorblind = sns.color_palette("coolwarm", 10)[::-1]
 
     bins = [[] for _ in range(len(segs))]
+    x, y = [], []
     for p in val_ent_pairs:
         v, ent = p[0], p[1]
-        cat = int(ent // 0.25)
+        cat = int(ent // step_size)
         try:
             bins[cat].append(v)
+            x.append(cat)
+            y.append(v)
         except:
             pass
     fig1, ax1 = plt.subplots()
     ax1.set_title(title)
-    ax1.boxplot(bins)
+    ax1 = sns.violinplot(x=x, y=y, cut=0, palette=colorblind, inner='quartile')
+
+    # ax1.set_xticks( np.arange(0, 8, step_size).tolist())
+    # ax1.set_xticklabels(np.arange(0, 8, step_size).tolist())
 
     plt.show()
+
 
 def analyze_attention_y_entropy(attn_tlle, pred_ent, input_doc, ban_positions, logits):
     T = attn_tlle.shape[0]
@@ -131,24 +142,25 @@ import numpy as np
 from scipy.stats import entropy
 
 if __name__ == '__main__':
+    args = parse_arg()
     print("Looking at attention")
-    FILE_NUM = 20
-    if 'pegasus' in MODEL_NAME:
+    if 'pegasus' in args.model_name:
         from transformers import PegasusTokenizer
 
-        bpe_tokenizer = PegasusTokenizer.from_pretrained(MODEL_NAME)
+        bpe_tokenizer = PegasusTokenizer.from_pretrained(args.model_name)
         EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
         BOS_TOK_ID = 0
     else:
         raise NotImplementedError
-    files = os.listdir(CUR_DIR)
+    files = os.listdir(args.cur_dir)
     random.shuffle(files)
-    files = files[:FILE_NUM]
+    files = files[:100]
 
     BOS_TOKEN = 0
     all_data_pairs = [[], [], [], []]
     for f in files:
-        with open(os.path.join(CUR_DIR, f), 'rb') as fd:
+        print('Running ...')
+        with open(os.path.join(args.cur_dir, f), 'rb') as fd:
             data = pickle.load(fd)
 
         attentions, pred_distb, logits, input_doc = data['attentions'], data['pred_distributions'], data['logits'], \
@@ -156,7 +168,6 @@ if __name__ == '__main__':
 
         timesteps = len(attentions)
         attentions_tlle = convert_enc_attn(attentions, merge_layer_head=False)  # T,L,L,E
-
         attention_tle = convert_enc_attn(attentions, merge_layer_head=True)  # T,L,E
 
         document_len = input_doc.shape[0]
@@ -168,7 +179,7 @@ if __name__ == '__main__':
 
         idf_flag = compute_idf(attention_tle)  # E
         ban_positions = get_ban_positions(idf_flag)
-        ban_positions = []
+        # ban_positions = []
         data_pairs = analyze_attention_y_entropy(attentions_tlle, pred_ent, input_doc, ban_positions, logits)
         all_data_pairs[0] += data_pairs[0]
         all_data_pairs[1] += data_pairs[1]

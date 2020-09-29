@@ -5,8 +5,8 @@ from util import auto_detach_to_cpu, get_random_string
 import numpy as np
 import pickle
 
-full_data = True  # shows everything include attention and hidden states
-# full_data = False
+# full_data = True  # shows everything include attention and hidden states
+full_data = False
 
 MODEL_NAME = "google/pegasus-cnn_dailymail"  # "google/pegasus-xsum"
 # MODEL_NAME = "google/pegasus-xsum"
@@ -51,6 +51,8 @@ else:
     raise NotImplementedError
 """
 
+from scipy.stats import entropy
+
 
 class DataCollector():
     def __init__(self, full_data: bool):
@@ -84,6 +86,7 @@ class DataCollector():
         for i in range(batchsz):
             _pred_dist = [x[i] for x in self.pred_distributions]
             _pred_dist = np.stack(_pred_dist, axis=0)
+            ent = entropy(np.exp(_pred_dist), axis=-1)
             if self.full_data:
                 _hidden_states = [[y[i][np.newaxis, ...] for y in x] for x in self.all_hidden_states]
                 _hidden_states = [np.stack(x, axis=1) for x in self.all_hidden_states]
@@ -92,6 +95,7 @@ class DataCollector():
             else:
                 _hidden_states = None
                 _attn = None
+                _pred_dist = None
 
             # _attn = np.stack(_attn, axis=0)
             _logit = [x[i] for x in self.logits]
@@ -115,7 +119,9 @@ class DataCollector():
                      'logits': _logit,
                      'input_doc': self.input_doc[i],
                      'input_doc_mask': self.input_doc_mask[i],
-                     'meta': _meta
+                     'meta': _meta,
+                     'ent': ent
+
                      }, fd
                 )
             logging.debug(f"writing {os.path.join(CUR_DIR, f)}")

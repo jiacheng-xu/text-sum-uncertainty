@@ -1,5 +1,7 @@
 import numpy, scipy
 
+from util import parse_arg
+
 
 def analyze_pred_dist_single_step(pred_distribution: numpy.ndarray, k=5):
     ent = scipy.stats.entropy(pred_distribution)
@@ -22,16 +24,23 @@ import torch
 from typing import List
 
 
-def analyze_sentence(logit: List, pred_dist: numpy.ndarray, input_doc, input_bigram, input_trigram) -> List:
+def analyze_sentence(logit: List, entropy: List,
+                     # pred_dist: numpy.ndarray,
+                     input_doc, input_bigram, input_trigram) -> List:
     # print(logit)
+    viz_outputs = []
+    for log, ent in zip(logit, entropy):
+        viz_outputs.append("{0}_{1:.1f}".format(bpe_tokenizer.decode(log), ent))
+    print(" ".join(viz_outputs))
     cand_bigram = get_bigram(logit)
     # tokens = [bpe_tokenizer.decode(x) for x in logit]
     l = len(logit)
     rt = []
     for idx, big in enumerate(cand_bigram):
         t = big[1][0]
-        max_prob = float(pred_dist[t].max())
-        ent = float(scipy.stats.entropy(pred_dist[t]))
+        # max_prob = float(pred_dist[t].max())
+        # ent = float(scipy.stats.entropy(pred_dist[t]))
+        ent = entropy[t]
         tok = big[1][2]
         bigran, trigram = False, False
         if t >= 0:
@@ -42,7 +51,7 @@ def analyze_sentence(logit: List, pred_dist: numpy.ndarray, input_doc, input_big
                 bigran = False
 
         rt.append(
-            [t, l, ent, max_prob, tok, bigran, trigram]
+            [t, l, ent, 0, tok, bigran, trigram]
         )
 
     return rt
@@ -74,6 +83,9 @@ def check_if_bpe_is_a_word(bpe_id):
     return False
 
 
+from transformers import GPT2Tokenizer
+
+
 def get_bigram(logit_list: List[int]):
     indices = []
     for idx, log in enumerate(logit_list):
@@ -101,19 +113,21 @@ def get_bigram(logit_list: List[int]):
     return input_bigram
 
 
-def analyze_prediction_entropy(pred_dist: numpy.ndarray, input_doc: numpy.ndarray, eos_tokens=[50256]):
+def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens=[50256],
+                               pred_dist: numpy.ndarray = None):
     # 1) the general entropy distribution of all timesteps. get a sample of high/low entropy word prediction on two datasets.
     # 2) how entropy relates to the relative position of a sentence.
     # 3) characterize the copy/content selection/ EOS or not modes.
     # 4) does some part of hidden states indicate
 
-    logits = pred_dist.argmax(axis=-1)
+    # logits = pred_dist.argmax(axis=-1)
     logit_list = logits.tolist()
-    print(logit_list)
+    # print(logit_list)
+    ent_list = ent.tolist()
     input_doc = input_doc.tolist()
     # for x in logit_list:
     #     print(f"{x} - {bpe_tokenizer.convert_ids_to_tokens(x)}")
-    print(f"Processing: Summary: {bpe_tokenizer.convert_ids_to_tokens(logit_list)}\n{bpe_tokenizer.decode(input_doc)}")
+    # print(f"Processing: Summary: {bpe_tokenizer.convert_ids_to_tokens(logit_list)}\n{bpe_tokenizer.decode(input_doc)}")
     input_bigram = get_bigram(input_doc)
     input_bigram = [f"{big[0][2]}_{big[1][2]}" for big in input_bigram]
     print(f"Bigram like {input_bigram[0]}")
@@ -127,37 +141,43 @@ def analyze_prediction_entropy(pred_dist: numpy.ndarray, input_doc: numpy.ndarra
         indi = indi + 1
         if indi - last_indi < 3:
             break
-        output = analyze_sentence(logit_list[last_indi:indi], pred_dist[last_indi:indi], input_doc, input_bigram,
+        output = analyze_sentence(logit_list[last_indi:indi],
+                                  ent_list[last_indi:indi],
+                                  # pred_dist[last_indi:indi],
+                                  input_doc, input_bigram,
                                   input_bigram)
         outputs += output
         last_indi = indi
     return outputs
 
 
+import json
+
 if __name__ == '__main__':
     print("Look at the entropy")
-    from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME
+    # from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME
 
-    print(f"{CUR_DIR}")
-    model_files = os.listdir(CUR_DIR)
+    args = parse_arg()
+
+    model_files = os.listdir(args.cur_dir)
 
     random.shuffle(model_files)
-    model_files = model_files[:3000]
+    model_files = model_files[:args.max_sample_num]
     print(f"total len of files: {len(model_files)}")
     entropies = []
     max_probs = []
-    from transformers import GPT2Tokenizer
-
-    if 'pegasus' in MODEL_NAME:
+    print(args.spec_name)
+    if 'pegasus' in args.model_name:
         from transformers import PegasusTokenizer
-        bpe_tokenizer = PegasusTokenizer.from_pretrained(MODEL_NAME)
+
+        bpe_tokenizer = PegasusTokenizer.from_pretrained(args.model_name)
         EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
     else:
         raise NotImplementedError
     try:
         outputs = []
         for f in model_files:
-            with open(os.path.join(CUR_DIR, f), 'rb') as fd:
+            with open(os.path.join(args.cur_dir, f), 'rb') as fd:
                 data = pickle.load(fd)
             print(f"Finish loading {f}")
             try:
@@ -170,20 +190,21 @@ if __name__ == '__main__':
                 effective_input_len = int(input_doc_mask.sum())
                 input_doc = input_doc[:effective_input_len]
             except:
-                pred_real_dist = data['pred_distributions']
-                pred_real_dist = numpy.exp(pred_real_dist)
+                logits = data['logits']
+                ent = data['ent']
+                # pred_real_dist = data['pred_distributions']
+                # pred_real_dist = numpy.exp(pred_real_dist)
                 input_doc = data['input_doc']
                 input_doc_mask = data['input_doc_mask']
                 effective_input_len = int(input_doc_mask.sum())
                 input_doc = input_doc[:effective_input_len]
-            out = analyze_prediction_entropy(pred_real_dist, input_doc, EOS_TOK_IDs)
+            out = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs)
             outputs += out
     except KeyboardInterrupt:
         print("interrupted")
-    print(f"Entropy data in json in {PROB_META_DIR}")
-    import json
+    print(f"Entropy data in .json in {args.prob_meta_dir}")
 
     s = json.dumps(outputs)
-    print(f"writing to {spec_name}_entropy.json")
-    with open(os.path.join(PROB_META_DIR, f"{spec_name}_entropy.json"), 'w') as  fd:
+    print(f"writing to {args.spec_name}_entropy.json")
+    with open(os.path.join(args.prob_meta_dir, f"{args.spec_name}_entropy.json"), 'w') as fd:
         fd.write(s)
