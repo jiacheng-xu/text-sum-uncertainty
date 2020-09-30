@@ -22,11 +22,12 @@ def analyze_pred_dist_single_step(pred_distribution: numpy.ndarray, k=5):
 import os, pickle, random
 import torch
 from typing import List
+import numpy as np
 
 
 def analyze_sentence(logit: List, entropy: List,
-                     # pred_dist: numpy.ndarray,
-                     input_doc, input_bigram, input_trigram) -> List:
+                     pred_dist: numpy.ndarray,
+                     input_doc, input_bigram, nucleus_filter: bool = True, top_p=0.9) -> List:
     # print(logit)
     viz_outputs = []
     for log, ent in zip(logit, entropy):
@@ -39,8 +40,17 @@ def analyze_sentence(logit: List, entropy: List,
     for idx, big in enumerate(cand_bigram):
         t = big[1][0]
         # max_prob = float(pred_dist[t].max())
-        # ent = float(scipy.stats.entropy(pred_dist[t]))
-        ent = entropy[t]
+        if nucleus_filter:
+            sorted_indices = np.argsort(pred_dist[t])[::-1]
+            sorted_values = np.sort(pred_dist[t])[::-1]
+            cumulative_probs = np.cumsum(sorted_values)
+            sorted_indices_to_remove = cumulative_probs > top_p
+
+        else:
+            assert np.sum(pred_dist[t]) > 0.99
+            ent = float(scipy.stats.entropy(pred_dist[t]))
+            # ent     = entropy[t]
+
         tok = big[1][2]
         bigran, trigram = False, False
         if t >= 0:
@@ -143,9 +153,9 @@ def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens
             break
         output = analyze_sentence(logit_list[last_indi:indi],
                                   ent_list[last_indi:indi],
-                                  # pred_dist[last_indi:indi],
+                                  pred_dist[last_indi:indi],
                                   input_doc, input_bigram,
-                                  input_bigram)
+                                  nucleus_filter=False)
         outputs += output
         last_indi = indi
     return outputs
@@ -172,6 +182,12 @@ if __name__ == '__main__':
 
         bpe_tokenizer = PegasusTokenizer.from_pretrained(args.model_name)
         EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
+    elif 'gpt' in args.model_name:
+        from transformers import GPT2Tokenizer
+
+        bpe_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        EOS_TOK_IDs = [bpe_tokenizer.eos_token_id]
+
     else:
         raise NotImplementedError
     try:
@@ -191,14 +207,17 @@ if __name__ == '__main__':
                 input_doc = input_doc[:effective_input_len]
             except:
                 logits = data['logits']
-                ent = data['ent']
-                # pred_real_dist = data['pred_distributions']
-                # pred_real_dist = numpy.exp(pred_real_dist)
+                if 'ent' in data:
+                    ent = data['ent']
+                else:
+                    ent = None
+                pred_real_dist = data['pred_distributions']
+                pred_real_dist = numpy.exp(pred_real_dist)
                 input_doc = data['input_doc']
                 input_doc_mask = data['input_doc_mask']
                 effective_input_len = int(input_doc_mask.sum())
                 input_doc = input_doc[:effective_input_len]
-            out = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs)
+            out = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs, pred_real_dist)
             outputs += out
     except KeyboardInterrupt:
         print("interrupted")

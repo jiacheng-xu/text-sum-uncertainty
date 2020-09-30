@@ -10,7 +10,7 @@ import logging
 
 
 class SumGen(torch.nn.Module):
-    def __init__(self, model, tokenizer: PreTrainedTokenizer,
+    def __init__(self, model, tokenizer: PreTrainedTokenizer, cur_dir,
                  use_cache=True, max_len=30, full_data=False):
         # BART encoder outputs: [x, encoder_states, all_attentions]
         # BART decoder outputs: [x, next_cache, all_hidden_states, all_self_attns, all_enc_self_attns]
@@ -23,7 +23,7 @@ class SumGen(torch.nn.Module):
         self.max_len = max_len
         self.use_cache = use_cache
         self.encoder = self.model.get_encoder()
-        self.recorder = DataCollector(full_data=full_data)
+        self.recorder = DataCollector(full_data=full_data, cur_dir=cur_dir)
         self.logsoftmax = torch.nn.LogSoftmax(-1)
 
         self.return_dict = False
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     model, tokenizer = load_PEGASUS(args.model_name)
     device = torch.device(args.device)
     model = model.to(device)
-    summary_gen_model = SumGen(model=model, tokenizer=tokenizer,
+    summary_gen_model = SumGen(model=model, tokenizer=tokenizer, cur_dir=args.cur_dir,
                                full_data=args.feature,
                                max_len=max_len)
     total_cnt = 0

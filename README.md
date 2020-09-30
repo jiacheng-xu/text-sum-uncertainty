@@ -9,6 +9,6 @@ Author: Jiacheng Xu, Shrey Desai, Greg Durrett
 
 Generation
 
-`python run_model_pegasus.py --data_name xsum --model_name google/pegasus-xsum`
+`python run_model_pegasus.py --data_name xsum --model_name google/pegasus-xsum --full_data`
 
 Entropy files

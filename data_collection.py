@@ -5,23 +5,24 @@ from util import auto_detach_to_cpu, get_random_string
 import numpy as np
 import pickle
 
-# full_data = True  # shows everything include attention and hidden states
-full_data = False
-
-MODEL_NAME = "google/pegasus-cnn_dailymail"  # "google/pegasus-xsum"
-# MODEL_NAME = "google/pegasus-xsum"
-
-DATA_NAME = "cnn_dailymail"
-# DATA_NAME = 'xsum'
-
-PROB_META_DIR = '/mnt/data0/jcxu/data/prob_gpt'
-spec_name = f"d_{DATA_NAME}-m_{MODEL_NAME[-5:]}-full{int(full_data)}"
-
-CUR_DIR = os.path.join(PROB_META_DIR, spec_name)
-if not os.path.isdir(CUR_DIR):
-    os.mkdir(CUR_DIR)
-    logging.info(f"Making {CUR_DIR}")
-    print(f"======= {CUR_DIR} =======")
+#
+# # full_data = True  # shows everything include attention and hidden states
+# full_data = False
+#
+# MODEL_NAME = "google/pegasus-cnn_dailymail"  # "google/pegasus-xsum"
+# # MODEL_NAME = "google/pegasus-xsum"
+#
+# DATA_NAME = "cnn_dailymail"
+# # DATA_NAME = 'xsum'
+#
+# PROB_META_DIR = '/mnt/data0/jcxu/data/prob_gpt'
+# spec_name = f"d_{DATA_NAME}-m_{MODEL_NAME[-5:]}-full{int(full_data)}"
+#
+# CUR_DIR = os.path.join(PROB_META_DIR, spec_name)
+# if not os.path.isdir(CUR_DIR):
+#     os.mkdir(CUR_DIR)
+#     logging.info(f"Making {CUR_DIR}")
+#     print(f"======= {CUR_DIR} =======")
 
 """
 if data_name == 'xsum':
@@ -55,7 +56,7 @@ from scipy.stats import entropy
 
 
 class DataCollector():
-    def __init__(self, full_data: bool):
+    def __init__(self, full_data: bool, cur_dir):
         self.pred_distributions = []
         self.attentions = []
         self.all_hidden_states = []
@@ -64,6 +65,7 @@ class DataCollector():
         self.input_doc_mask = None
         self.meta = None
         self.full_data = full_data
+        self.cur_dir = cur_dir
 
     def add_meta(self, meta):
         self.meta = meta
@@ -73,7 +75,7 @@ class DataCollector():
         self.input_doc_mask = auto_detach_to_cpu(input_doc_msk)
 
     def add_step(self, pred_distribution, all_hidden_states=None, attentions=None):
-        self.pred_distributions.append(auto_detach_to_cpu(pred_distribution))
+        self.pred_distributions.append(auto_detach_to_cpu(pred_distribution, dtype=np.float32))
         if self.full_data:
             self.all_hidden_states.append(auto_detach_to_cpu(all_hidden_states))
             self.attentions.append(auto_detach_to_cpu(attentions))
@@ -88,9 +90,10 @@ class DataCollector():
             _pred_dist = np.stack(_pred_dist, axis=0)
             ent = entropy(np.exp(_pred_dist), axis=-1)
             if self.full_data:
-                _hidden_states = [[y[i][np.newaxis, ...] for y in x] for x in self.all_hidden_states]
-                _hidden_states = [np.stack(x, axis=1) for x in self.all_hidden_states]
-                _hidden_states = np.stack(_hidden_states, axis=0)
+                # _hidden_states = [[y[i][np.newaxis, ...] for y in x] for x in self.all_hidden_states]
+                # _hidden_states = [np.stack(x, axis=1) for x in self.all_hidden_states]
+                # _hidden_states = np.stack(_hidden_states, axis=0)
+                _hidden_states = None
                 _attn = [[y[i] for y in x] for x in self.attentions]
             else:
                 _hidden_states = None
@@ -111,7 +114,7 @@ class DataCollector():
                 fname = get_random_string(8)
             f = f"model_output_{fname}.pt"
 
-            with open(os.path.join(CUR_DIR, f), 'wb') as fd:
+            with open(os.path.join(self.cur_dir, f), 'wb') as fd:
                 pickle.dump(
                     {'pred_distributions': _pred_dist,
                      'attentions': _attn,
@@ -124,5 +127,6 @@ class DataCollector():
 
                      }, fd
                 )
-            logging.debug(f"writing {os.path.join(CUR_DIR, f)}")
-        self.__init__(full_data=self.full_data)
+            logging.debug(f"writing {os.path.join(self.cur_dir, f)}")
+            print(f"writing {os.path.join(self.cur_dir, f)}")
+        self.__init__(full_data=self.full_data, cur_dir=self.cur_dir)

@@ -152,7 +152,7 @@ from typing import Union, List
 import numpy as np
 
 
-def auto_detach_to_cpu(inp, dtype=np.float16) -> Union[np.ndarray, List[np.ndarray]]:
+def auto_detach_to_cpu(inp, dtype=np.float32) -> Union[np.ndarray, List[np.ndarray]]:
     if isinstance(inp, torch.Tensor):
         inp = inp.detach().cpu().numpy().astype(dtype)
         return inp
