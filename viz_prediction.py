@@ -40,6 +40,7 @@ def viz_pred(tokenizer, pred_dist, input_doc, eos_tok, topk=5):
     eos_flag = False
     for t in range(T):
         cur_pred_distb = pred_dist[t]
+        assert sum(cur_pred_distb)>0.99
         cur_ent = ent[t]
 
         indices = np.argsort(cur_pred_distb)[::-1].tolist()
@@ -72,7 +73,7 @@ if __name__ == '__main__':
 
     bpe_tokenizer = PegasusTokenizer.from_pretrained(args.model_name)
     EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
-    [ print(bpe_tokenizer.decode(x)) for x in EOS_TOK_IDs]
+    [print(bpe_tokenizer.decode(x)) for x in EOS_TOK_IDs]
     bos_token_id = 0
     random.shuffle(files)
     for f in files:

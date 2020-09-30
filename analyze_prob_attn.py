@@ -1,6 +1,5 @@
 import statistics
 
-from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
 import os, random, pickle
 import numpy as np
 
@@ -345,8 +344,7 @@ def run_trial(lay_num, files):
 
 
 if __name__ == '__main__':
-    print("Looking at attention")
-
+    print("Looking at  attention")
     if 'pegasus' in MODEL_NAME:
         from transformers import PegasusTokenizer
 

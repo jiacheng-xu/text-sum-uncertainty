@@ -1,5 +1,6 @@
 import os, random
 
+from analyze_entropy import comp_entropy
 from analyze_prob_attn import compute_idf, get_ban_positions
 # from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
 from util import convert_enc_attn, parse_arg
@@ -117,11 +118,12 @@ def plot_box(val_ent_pairs, title=None, step_size=.25):
     plt.show()
 
 
-def analyze_attention_y_entropy(attn_tlle, pred_ent, input_doc, ban_positions, logits):
+def analyze_attention_y_entropy(attn_tlle, pred_distribution, input_doc, ban_positions, logits,nuc,top_p):
     T = attn_tlle.shape[0]
     data_pairs = [[], [], [], []]
     for t in range(T):
-        t_pred_ent = pred_ent[t]
+        t_pred_ent = comp_entropy(pred_distribution[t],nuc,top_p)
+
         last_inp, cur_inp, cur_pred, next_pred = get_ys(t, logits)
         all_attns_counter = _y_entropy_step(attn_tlle[t], input_doc, ban_positions)
         total_attn_val = sum(all_attns_counter.values())
@@ -175,12 +177,11 @@ if __name__ == '__main__':
         logits = logits.tolist()
         dec_inp_logits = [BOS_TOKEN] + logits[:-1]
         pred_distb = np.exp(pred_distb)  # time step, vocab size
-        pred_ent = entropy(pred_distb, axis=-1)
-
+        # pred_ent = entropy(pred_distb, axis=-1)
         idf_flag = compute_idf(attention_tle)  # E
         ban_positions = get_ban_positions(idf_flag)
         # ban_positions = []
-        data_pairs = analyze_attention_y_entropy(attentions_tlle, pred_ent, input_doc, ban_positions, logits)
+        data_pairs = analyze_attention_y_entropy(attentions_tlle, pred_distb, input_doc, ban_positions, logits)
         all_data_pairs[0] += data_pairs[0]
         all_data_pairs[1] += data_pairs[1]
         all_data_pairs[2] += data_pairs[2]

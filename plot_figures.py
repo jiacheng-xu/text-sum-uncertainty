@@ -61,6 +61,28 @@ debug = True
 debug = False
 
 
+def _read_data_position_fig2(dir, spec_name, SEPS):
+    data = read_json_file(os.path.join(dir, f"{spec_name}_pos_entropy.json"))
+    data_for_panda = []
+    random.shuffle(data)
+    print(f"Len of data: {len(data)} Name: {spec_name}")
+    if debug:
+        data = data[:1000]
+    for d in data:
+        if d[1] <= 1:
+            continue
+        relative_position = int(math.floor(d[0] * SEPS / (d[1]))) / SEPS
+        new_data = [relative_position, d[2]]
+
+        data_for_panda.append(new_data)
+
+    print("Finish reading data")
+
+    keys = ['Relative Position', 'Entropy']
+    df = pd.DataFrame(data_for_panda, columns=keys)
+    return df
+
+
 def _read_data(dir, spec_name, SEPS):
     data = read_json_file(os.path.join(dir, f"{spec_name}_entropy.json"))
     data_for_panda = []
@@ -186,8 +208,8 @@ def draw_fig_1():
     # plt.rcParams["font.weight"] = "light"
     # plt.rcParams.update({'font.size': 15})
     # plt.rcParams["font.family"] = "Times New Roman"
-    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full0'
-    xsum_spec_name = 'd_xsum-m_-xsum-full0'
+    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
+    xsum_spec_name = 'd_xsum-m_-xsum-full1'
     draw_x_entropy_y_bigram_count(dir_datadrive, FIG_SIZE_x=GLOBAL_FIGURE_WIDTH,
                                   cnndm_spec_name=cnndm_spec_name, xsum_spec_name=xsum_spec_name)
     fig.tight_layout()
@@ -209,11 +231,11 @@ from matplotlib.axes._axes import Axes
 
 
 def draw_x_rel_postion_y_entropy(dir, cnndm_spec_name, xsum_spec_name, SEPS=20, FIG_SIZE_x=10, FIG_SIZE_y=5):
-    cnndm_df, _, _ = _read_data(dir, cnndm_spec_name, SEPS)
-    xsum_df, _, _ = _read_data(dir, xsum_spec_name, SEPS)
+    cnndm_df = _read_data_position_fig2(dir, cnndm_spec_name, SEPS)
+    xsum_df = _read_data_position_fig2(dir, xsum_spec_name, SEPS)
     colorblind = sns.color_palette("coolwarm", 10)[::-1]
 
-    keys = ['Entropy', 'Top1 Prob', 'token', 'Bigram ', 'InTrigramOfDocument', 'Relative Position']
+    keys = [  'Relative Position','Entropy']
 
     # axes = fig.add_axes([0.15, 0.3, 0.84, 0.66])
     # sns.distplot(x=ykey, data=df, hist=False, rug=True)
@@ -222,7 +244,7 @@ def draw_x_rel_postion_y_entropy(dir, cnndm_spec_name, xsum_spec_name, SEPS=20, 
     #
     axes1: Axes = plt.subplot(121)
     max_lim = 7
-    sns.boxplot(x=keys[-1], y=keys[0], data=cnndm_df,
+    sns.boxplot(x=keys[0], y=keys[1], data=cnndm_df,
                 fliersize=0,
                 # palette='coolwarm',
                 # color=colorblind[3],
@@ -245,7 +267,7 @@ def draw_x_rel_postion_y_entropy(dir, cnndm_spec_name, xsum_spec_name, SEPS=20, 
 
     axes2 = plt.subplot(122, sharey=axes1)
 
-    sns.boxplot(x=keys[-1], y=keys[0], data=xsum_df,
+    sns.boxplot(x=keys[0], y=keys[1], data=xsum_df,
                 # notch=True,
                 fliersize=0,
                 palette=colorblind,
@@ -270,9 +292,10 @@ def draw_fig_2():
     # plt.rcParams.update({'font.size': 15})
     # plt.rcParams["font.family"] = "Times New Roman"
 
-    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full0'
-    xsum_spec_name = 'd_xsum-m_-xsum-full0'
-    draw_x_rel_postion_y_entropy(dir_datadrive, cnndm_spec_name, xsum_spec_name, SEPS=5,FIG_SIZE_x=GLOBAL_FIGURE_WIDTH)
+    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
+    xsum_spec_name = 'd_xsum-m_-xsum-full1'
+    draw_x_rel_postion_y_entropy(dir_datadrive, cnndm_spec_name, xsum_spec_name, SEPS=10,
+                                 FIG_SIZE_x=GLOBAL_FIGURE_WIDTH)
     fig.tight_layout()
     plt.savefig(f"x_rel_postion_y_entropy.pdf", dpi=dpi)
 

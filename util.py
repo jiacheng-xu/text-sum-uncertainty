@@ -1,5 +1,4 @@
 from datasets import list_datasets
-from datasets import load_dataset
 import torch
 from datasets import load_dataset
 from transformers import AutoTokenizer
@@ -133,7 +132,7 @@ def load_data(dataset_dir, data_name, tokenizer_name='bart-large-cnn',
         if len(cur_src_txt) == batch_size:
             assert len(cur_src_txt) == len(cur_tgt_txt)
             batch = tokenizer.prepare_seq2seq_batch(cur_src_txt, tgt_texts=cur_tgt_txt, max_length=max_length,
-                                                    truncation=True, padding='longest')
+                                                    truncation=True, padding='longest',return_tensors='pt')
 
             yield batch
             cur_src_txt, cur_tgt_txt = [], []
@@ -163,11 +162,19 @@ def auto_detach_to_cpu(inp, dtype=np.float32) -> Union[np.ndarray, List[np.ndarr
     return tmp
 
 
-def load_PEGASUS(mname):
-    from transformers import PegasusTokenizer, PegasusForConditionalGeneration
+def load_BART_or_PEGASUS(mname):
+    if 'bart' in mname.lower():
+        from transformers import  BartTokenizer, BartForConditionalGeneration
 
-    model = PegasusForConditionalGeneration.from_pretrained(mname)
-    tokenizer = PegasusTokenizer.from_pretrained(mname)
+        model = BartForConditionalGeneration.from_pretrained(mname)
+        tokenizer = BartTokenizer.from_pretrained(mname)
+    elif 'pegasus' in mname.lower():
+        from transformers import PegasusTokenizer, PegasusForConditionalGeneration
+
+        model = PegasusForConditionalGeneration.from_pretrained(mname)
+        tokenizer = PegasusTokenizer.from_pretrained(mname)
+    else:
+        raise NotImplementedError("UNKOWN model name.")
     return model, tokenizer
 
 
@@ -196,6 +203,9 @@ def parse_arg():
     parser.add_argument('--dataset_dir', help='Location to cache/load the dataset.', default="/mnt/data0/jcxu/datasets")
     parser.add_argument('--split', default='test', help='Which part of the dataset split to use.')
     parser.add_argument('--device', default='cuda:0')
+    parser.add_argument('--trunc_prob',default='nucleus',action='store_true')
+    parser.add_argument('--full_prob', default='nucleus', action='store_false')
+    parser.set_defaults(nucleus=True)
     args = parser.parse_args()
 
     spec_name = f"d_{args.data_name}-m_{args.model_name[-5:]}-full{int(args.feature)}"

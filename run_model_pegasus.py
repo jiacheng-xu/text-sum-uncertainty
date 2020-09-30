@@ -5,7 +5,7 @@ from typing import Optional, List
 from argparse import Namespace
 
 from data_collection import DataCollector
-from util import load_PEGASUS, load_data, parse_arg
+from util import load_BART_or_PEGASUS, load_data, parse_arg
 import logging
 
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
                                batch_size=batch_size,
                                max_length=args.enc_len,
                                max_sample_num=args.max_sample_num)
-    model, tokenizer = load_PEGASUS(args.model_name)
+    model, tokenizer = load_BART_or_PEGASUS(args.model_name)
     device = torch.device(args.device)
     model = model.to(device)
     summary_gen_model = SumGen(model=model, tokenizer=tokenizer, cur_dir=args.cur_dir,
