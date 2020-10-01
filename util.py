@@ -1,3 +1,5 @@
+import re
+
 from datasets import list_datasets
 import torch
 from datasets import load_dataset
@@ -205,10 +207,11 @@ def parse_arg():
     parser.add_argument('--device', default='cuda:0')
     parser.add_argument('--trunc_prob',default='nucleus',action='store_true')
     parser.add_argument('--full_prob', default='nucleus', action='store_false')
-    parser.set_defaults(nucleus=True)
+    parser.set_defaults(nucleus=False)
     args = parser.parse_args()
+    stream_line_model_name = re.sub(r'[^\w\s]', '', args.model_name)
 
-    spec_name = f"d_{args.data_name}-m_{args.model_name[-5:]}-full{int(args.feature)}"
+    spec_name = f"d_{args.data_name}-m_{stream_line_model_name}-full{int(args.feature)}"
     CUR_DIR = os.path.join(args.prob_meta_dir, spec_name)
     if not os.path.isdir(CUR_DIR):
         os.mkdir(CUR_DIR)

@@ -202,14 +202,14 @@ def draw_x_entropy_y_bigram_count(dir, SEPS=10, FIG_SIZE_x=10, FIG_SIZE_y=3, bin
     print(f"{statistics.median(xsum_bigram_entropies), statistics.median(xsum_not_bigram_entropies),}")
 
 
-def draw_fig_1():
+def draw_fig_1(cnndm_spec_name,xsum_spec_name):
     fig = plt.figure(figsize=(FIG_SIZE_x, ysize_fig1))
 
     # plt.rcParams["font.weight"] = "light"
     # plt.rcParams.update({'font.size': 15})
     # plt.rcParams["font.family"] = "Times New Roman"
-    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
-    xsum_spec_name = 'd_xsum-m_-xsum-full1'
+    # cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
+    # xsum_spec_name = 'd_xsum-m_-xsum-full1'
     draw_x_entropy_y_bigram_count(dir_datadrive, FIG_SIZE_x=GLOBAL_FIGURE_WIDTH,
                                   cnndm_spec_name=cnndm_spec_name, xsum_spec_name=xsum_spec_name)
     fig.tight_layout()
@@ -235,7 +235,7 @@ def draw_x_rel_postion_y_entropy(dir, cnndm_spec_name, xsum_spec_name, SEPS=20, 
     xsum_df = _read_data_position_fig2(dir, xsum_spec_name, SEPS)
     colorblind = sns.color_palette("coolwarm", 10)[::-1]
 
-    keys = [  'Relative Position','Entropy']
+    keys = ['Relative Position', 'Entropy']
 
     # axes = fig.add_axes([0.15, 0.3, 0.84, 0.66])
     # sns.distplot(x=ykey, data=df, hist=False, rug=True)
@@ -285,19 +285,19 @@ def draw_x_rel_postion_y_entropy(dir, cnndm_spec_name, xsum_spec_name, SEPS=20, 
     # axes2.set_xlabel('Relative Position in Sentence')
 
 
-def draw_fig_2():
+def draw_fig_2(cnndm_spec_name,xsum_spec_name):
     fig = plt.figure(figsize=(FIG_SIZE_x, ysize_figure2))
 
     # plt.rcParams["font.weight"] = "light"
     # plt.rcParams.update({'font.size': 15})
     # plt.rcParams["font.family"] = "Times New Roman"
 
-    cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
-    xsum_spec_name = 'd_xsum-m_-xsum-full1'
+    # cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
+    # xsum_spec_name = 'd_xsum-m_-xsum-full1'
     draw_x_rel_postion_y_entropy(dir_datadrive, cnndm_spec_name, xsum_spec_name, SEPS=10,
                                  FIG_SIZE_x=GLOBAL_FIGURE_WIDTH)
     fig.tight_layout()
-    plt.savefig(f"x_rel_postion_y_entropy.pdf", dpi=dpi)
+    plt.savefig(f"x_rel_postion_y_entropy{cnndm_spec_name}{xsum_spec_name}.pdf", dpi=dpi)
 
     plt.show()
     plt.close()
@@ -524,6 +524,9 @@ def draw_figure3():
 
 
 if __name__ == '__main__':
-    draw_fig_1()
-    draw_fig_2()
+    cnndm_spec = "d_cnn_dailymail-m_googlepegasuscnn_dailymail-full1"
+    xsum_spec ="d_xsum-m_googlepegasusxsum-full1"
+    draw_fig_1(cnndm_spec,xsum_spec)
+    draw_fig_2(cnndm_spec_name=cnndm_spec,
+               xsum_spec_name=xsum_spec)
     # draw_figure3()

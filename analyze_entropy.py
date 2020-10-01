@@ -245,19 +245,22 @@ if __name__ == '__main__':
                 input_doc_mask = data['input_doc_mask']
                 effective_input_len = int(input_doc_mask.sum())
                 input_doc = input_doc[:effective_input_len]
-            out, out_pos = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs, pred_real_dist,nucleus_filter=args.nucleus)
+            out, out_pos = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs, pred_real_dist,
+                                                      nucleus_filter=args.nucleus)
             outputs += out
             outputs_pos_entropy += out_pos
     except KeyboardInterrupt:
         print("interrupted")
     print(f"Entropy data in .json in {args.prob_meta_dir}")
+    print(f"Nuc: {args.nucleus}")
 
-    print(f"writing Bigram entropy to {args.spec_name}_entropy.json")
+    nc_label = "" if args.nucleus else "_nuc"
+    print(f"writing Bigram entropy to {args.spec_name}{nc_label}_entropy.json")
     s = json.dumps(outputs)
-    with open(os.path.join(args.prob_meta_dir, f"{args.spec_name}_entropy.json"), 'w') as fd:
+    with open(os.path.join(args.prob_meta_dir, f"{args.spec_name}{nc_label}_entropy.json"), 'w') as fd:
         fd.write(s)
 
-    print(f"writing position entropy to {args.spec_name}_pos_entropy.json")
+    print(f"writing position entropy to {args.spec_name}{nc_label}_pos_entropy.json")
     dump_outputs_pos_entropy = json.dumps(outputs_pos_entropy)
-    with open(os.path.join(args.prob_meta_dir, f"{args.spec_name}_pos_entropy.json"), 'w') as fd:
+    with open(os.path.join(args.prob_meta_dir, f"{args.spec_name}{nc_label}_pos_entropy.json"), 'w') as fd:
         fd.write(dump_outputs_pos_entropy)
