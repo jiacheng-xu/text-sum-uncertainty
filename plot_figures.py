@@ -120,6 +120,9 @@ def normalize_figure1(bigram: List, not_bigram: List, cnt=10000):
         bigram = bigram[: int(len(bigram) * ratio)]
         random.shuffle(not_bigram)
         not_bigram = not_bigram[: int(len(not_bigram) * ratio)]
+    else:
+        print("NOT ENOUGH DATA")
+        raise ValueError
     print(f"normalized len: {len(bigram)} + {len(not_bigram)}")
     return bigram, not_bigram
 
@@ -524,8 +527,8 @@ def draw_figure3():
 
 
 if __name__ == '__main__':
-    cnndm_spec = "d_cnn_dailymail-m_googlepegasuscnn_dailymail-full1"
-    xsum_spec ="d_xsum-m_googlepegasusxsum-full1"
+    cnndm_spec = "d_cnn_dailymail-m_googlepegasuscnn_dailymail-full10.95"
+    xsum_spec ="d_xsum-m_googlepegasusxsum-full10.95"
     draw_fig_1(cnndm_spec,xsum_spec)
     draw_fig_2(cnndm_spec_name=cnndm_spec,
                xsum_spec_name=xsum_spec)

@@ -143,7 +143,7 @@ def get_bigram(logit_list: List[int]):
 
 
 def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens=[50256],
-                               pred_dist: numpy.ndarray = None, nucleus_filter: bool = True):
+                               pred_dist: numpy.ndarray = None, nucleus_filter: bool = True, top_p:float=0.95):
     # 1) the general entropy distribution of all timesteps. get a sample of high/low entropy word prediction on two datasets.
     # 2) how entropy relates to the relative position of a sentence.
     # 3) characterize the copy/content selection/ EOS or not modes.
@@ -176,7 +176,7 @@ def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens
                                               ent_list[last_indi:indi],
                                               pred_dist[last_indi:indi],
                                               input_doc, input_bigram,
-                                              nucleus_filter=nucleus_filter)
+                                              nucleus_filter=nucleus_filter,top_p=top_p)
         outputs += output
         outputs_pos += output_pos
         last_indi = indi
@@ -246,15 +246,17 @@ if __name__ == '__main__':
                 effective_input_len = int(input_doc_mask.sum())
                 input_doc = input_doc[:effective_input_len]
             out, out_pos = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs, pred_real_dist,
-                                                      nucleus_filter=args.nucleus)
+                                                      nucleus_filter=args.nucleus, top_p=args.nuc_prob)
             outputs += out
             outputs_pos_entropy += out_pos
     except KeyboardInterrupt:
         print("interrupted")
     print(f"Entropy data in .json in {args.prob_meta_dir}")
     print(f"Nuc: {args.nucleus}")
-
-    nc_label = "" if args.nucleus else "_nuc"
+    if args.nucleus:
+        nc_label = str(args.nuc_prob)
+    else:
+        nc_label = ""
     print(f"writing Bigram entropy to {args.spec_name}{nc_label}_entropy.json")
     s = json.dumps(outputs)
     with open(os.path.join(args.prob_meta_dir, f"{args.spec_name}{nc_label}_entropy.json"), 'w') as fd:

@@ -134,7 +134,7 @@ def load_data(dataset_dir, data_name, tokenizer_name='bart-large-cnn',
         if len(cur_src_txt) == batch_size:
             assert len(cur_src_txt) == len(cur_tgt_txt)
             batch = tokenizer.prepare_seq2seq_batch(cur_src_txt, tgt_texts=cur_tgt_txt, max_length=max_length,
-                                                    truncation=True, padding='longest',return_tensors='pt')
+                                                    truncation=True, padding='longest', return_tensors='pt')
 
             yield batch
             cur_src_txt, cur_tgt_txt = [], []
@@ -166,7 +166,7 @@ def auto_detach_to_cpu(inp, dtype=np.float32) -> Union[np.ndarray, List[np.ndarr
 
 def load_BART_or_PEGASUS(mname):
     if 'bart' in mname.lower():
-        from transformers import  BartTokenizer, BartForConditionalGeneration
+        from transformers import BartTokenizer, BartForConditionalGeneration
 
         model = BartForConditionalGeneration.from_pretrained(mname)
         tokenizer = BartTokenizer.from_pretrained(mname)
@@ -192,7 +192,7 @@ def parse_arg():
                         default='cnn_dailymail')
     parser.add_argument('--full_data', dest='feature', action='store_true')
     parser.add_argument('--min_data', dest='feature', action='store_false')
-    parser.set_defaults(feature=False)
+    parser.set_defaults(feature=True)
     parser.add_argument('--prob_meta_dir',
                         default='/mnt/data0/jcxu/data/prob_gpt',
                         help='Location to store outputs files.')
@@ -205,9 +205,10 @@ def parse_arg():
     parser.add_argument('--dataset_dir', help='Location to cache/load the dataset.', default="/mnt/data0/jcxu/datasets")
     parser.add_argument('--split', default='test', help='Which part of the dataset split to use.')
     parser.add_argument('--device', default='cuda:0')
-    parser.add_argument('--trunc_prob',default='nucleus',action='store_true')
+    parser.add_argument('--nuc_prob', default=0.95, type=float,help='')
+    parser.add_argument('--trunc_prob', default='nucleus', action='store_true')
     parser.add_argument('--full_prob', default='nucleus', action='store_false')
-    parser.set_defaults(nucleus=False)
+    parser.set_defaults(nucleus=True)
     args = parser.parse_args()
     stream_line_model_name = re.sub(r'[^\w\s]', '', args.model_name)
 

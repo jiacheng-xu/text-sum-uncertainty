@@ -117,12 +117,25 @@ def plot_box(val_ent_pairs, title=None, step_size=.25):
 
     plt.show()
 
+def plot_single_scatter(val_ent_pairs, title):
+    y_attn_frac = [ m[0] for m in val_ent_pairs]
+    x_pred_ent = [m[1] for m in val_ent_pairs]
+    ax = sns.jointplot(x=x_pred_ent, y=y_attn_frac, kind="hex", color="#4CB391")
 
-def analyze_attention_y_entropy(attn_tlle, pred_distribution, input_doc, ban_positions, logits,nuc,top_p):
+    # ax = sns.scatterplot(x=x_pred_ent,y=y_attn_frac)
+    #
+    # sns.histplot(x=x_pred_ent, y=y_attn_frac, bins=50, pthresh=.1, cmap="mako")
+    # sns.kdeplot(x=x_pred_ent, y=y_attn_frac, levels=5,linewidths=1)
+    # ax.set_title(title)
+
+    plt.show()
+    return ax
+
+def analyze_attention_y_entropy(attn_tlle, pred_distribution, input_doc, ban_positions, logits, nuc, top_p):
     T = attn_tlle.shape[0]
     data_pairs = [[], [], [], []]
     for t in range(T):
-        t_pred_ent = comp_entropy(pred_distribution[t],nuc,top_p)
+        t_pred_ent = comp_entropy(pred_distribution[t], nuc, top_p)
 
         last_inp, cur_inp, cur_pred, next_pred = get_ys(t, logits)
         all_attns_counter = _y_entropy_step(attn_tlle[t], input_doc, ban_positions)
@@ -156,7 +169,7 @@ if __name__ == '__main__':
         raise NotImplementedError
     files = os.listdir(args.cur_dir)
     random.shuffle(files)
-    files = files[:100]
+    files = files[:10]
 
     BOS_TOKEN = 0
     all_data_pairs = [[], [], [], []]
@@ -181,13 +194,15 @@ if __name__ == '__main__':
         idf_flag = compute_idf(attention_tle)  # E
         ban_positions = get_ban_positions(idf_flag)
         # ban_positions = []
-        data_pairs = analyze_attention_y_entropy(attentions_tlle, pred_distb, input_doc, ban_positions, logits)
+        data_pairs = analyze_attention_y_entropy(attentions_tlle, pred_distb, input_doc, ban_positions, logits,
+                                                 args.nucleus, args.nuc_prob)
         all_data_pairs[0] += data_pairs[0]
         all_data_pairs[1] += data_pairs[1]
         all_data_pairs[2] += data_pairs[2]
         all_data_pairs[3] += data_pairs[3]
-
-    plot_box(all_data_pairs[0], 'last_inp')
-    plot_box(all_data_pairs[1], 'cur_inp')
-    plot_box(all_data_pairs[2], 'cur_pred')
-    plot_box(all_data_pairs[3], 'next_pred')
+    plot_single_scatter(all_data_pairs[1], 'cur_inp')
+    plot_single_scatter(all_data_pairs[2], 'cur_pred')
+    # plot_box(all_data_pairs[0], 'last_inp')
+    # plot_box(all_data_pairs[1], 'cur_inp')
+    # plot_box(all_data_pairs[2], 'cur_pred')
+    # plot_box(all_data_pairs[3], 'next_pred')
