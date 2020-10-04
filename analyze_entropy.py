@@ -100,6 +100,10 @@ def check_if_a_bpe_is_a_token(bpe_id):
         return True
     if tok[0] in punct_list:
         return True
+    if bpe_id == bpe_tokenizer.bos_token_id or bpe_id == bpe_tokenizer.eos_token_id:
+        return True
+    if tok[0].isupper():
+        return True
     return False
 
 
@@ -113,13 +117,17 @@ def check_if_bpe_is_a_word(bpe_id):
 
 
 from transformers import GPT2Tokenizer
+from transformers import BartTokenizer
 
 
 def get_bigram(logit_list: List[int]):
     indices = []
+    # print(bpe_tokenizer.decode(logit_list))
     for idx, log in enumerate(logit_list):
-        # tok = bpe_tokenizer.decode(log)
-        if isinstance(bpe_tokenizer, GPT2Tokenizer):
+        tok = bpe_tokenizer.decode(log)
+        if isinstance(bpe_tokenizer, BartTokenizer):
+            istoken = check_if_a_bpe_is_a_token(log)
+        elif isinstance(bpe_tokenizer, GPT2Tokenizer):
             istoken = check_if_a_bpe_is_a_token(log)
         elif isinstance(bpe_tokenizer, PegasusTokenizer):
             istoken = check_if_bpe_is_a_word(log)
@@ -142,8 +150,8 @@ def get_bigram(logit_list: List[int]):
     return input_bigram
 
 
-def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens=[50256],
-                               pred_dist: numpy.ndarray = None, nucleus_filter: bool = True, top_p:float=0.95):
+def analyze_prediction_entropy(logit_list, ent_list, input_doc: numpy.ndarray, eos_tokens=[50256],
+                               pred_dist: numpy.ndarray = None, nucleus_filter: bool = True, top_p: float = 0.95):
     # 1) the general entropy distribution of all timesteps. get a sample of high/low entropy word prediction on two datasets.
     # 2) how entropy relates to the relative position of a sentence.
     # 3) characterize the copy/content selection/ EOS or not modes.
@@ -151,9 +159,9 @@ def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens
     assert sum(pred_dist[0]) > 0.99
     assert sum(pred_dist[0]) < 1.01
     # logits = pred_dist.argmax(axis=-1)
-    logit_list = logits.tolist()
+    # logit_list = logits.tolist()
     # print(logit_list)
-    ent_list = ent.tolist()
+    # ent_list = ent.tolist()
     input_doc = input_doc.tolist()
     # for x in logit_list:
     #     print(f"{x} - {bpe_tokenizer.convert_ids_to_tokens(x)}")
@@ -168,6 +176,7 @@ def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens
     outputs = []
     outputs_pos = []
     last_indi = 0
+    print(f"Decode: {bpe_tokenizer.decode(logit_list)}")
     for indi in indices:
         indi = indi + 1
         if indi - last_indi < 3:
@@ -176,7 +185,7 @@ def analyze_prediction_entropy(logits, ent, input_doc: numpy.ndarray, eos_tokens
                                               ent_list[last_indi:indi],
                                               pred_dist[last_indi:indi],
                                               input_doc, input_bigram,
-                                              nucleus_filter=nucleus_filter,top_p=top_p)
+                                              nucleus_filter=nucleus_filter, top_p=top_p)
         outputs += output
         outputs_pos += output_pos
         last_indi = indi
@@ -245,6 +254,26 @@ if __name__ == '__main__':
                 input_doc_mask = data['input_doc_mask']
                 effective_input_len = int(input_doc_mask.sum())
                 input_doc = input_doc[:effective_input_len]
+
+            logits = logits.tolist()
+            ent = ent.tolist()
+            # BART remove SOS
+            if 'bart' in args.model_name:
+                bos = bpe_tokenizer.bos_token_id
+                trimmed_logits, trimmed_ent, trimmed_pred_real_dist = [], [], []
+                for idx, logi in enumerate(logits):
+                    if logi == bos:
+                        continue
+                    trimmed_logits.append(logi)
+                    trimmed_ent.append(ent[idx])
+                    trimmed_pred_real_dist.append(pred_real_dist[idx])
+                    if logi == bpe_tokenizer.eos_token_id:
+                        break
+                if len(trimmed_pred_real_dist) > 5:
+                    trimmed_pred_real_dist = np.stack(trimmed_pred_real_dist, axis=0)
+                else:
+                    continue
+                logits, ent, pred_real_dist = trimmed_logits, trimmed_ent, trimmed_pred_real_dist
             out, out_pos = analyze_prediction_entropy(logits, ent, input_doc, EOS_TOK_IDs, pred_real_dist,
                                                       nucleus_filter=args.nucleus, top_p=args.nuc_prob)
             outputs += out

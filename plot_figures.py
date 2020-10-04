@@ -112,7 +112,7 @@ def _read_data(dir, spec_name, SEPS):
     return df, bigram_entropies, not_bigram_entropies
 
 
-def normalize_figure1(bigram: List, not_bigram: List, cnt=10000):
+def normalize_figure1(bigram: List, not_bigram: List, cnt=2000):
     if len(bigram) + len(not_bigram) > cnt:
         rate = len(bigram) + len(not_bigram)
         ratio = cnt / rate
@@ -529,6 +529,8 @@ def draw_figure3():
 if __name__ == '__main__':
     cnndm_spec = "d_cnn_dailymail-m_googlepegasuscnn_dailymail-full10.95"
     xsum_spec ="d_xsum-m_googlepegasusxsum-full10.95"
+    cnndm_spec = "d_cnn_dailymail-m_facebookbartlargecnn-full10.95"
+    xsum_spec = 'd_xsum-m_facebookbartlargexsum-full10.95'
     draw_fig_1(cnndm_spec,xsum_spec)
     draw_fig_2(cnndm_spec_name=cnndm_spec,
                xsum_spec_name=xsum_spec)

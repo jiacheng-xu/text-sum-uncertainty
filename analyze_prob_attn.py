@@ -153,7 +153,7 @@ def get_ban_positions(idf_flag):
     return result
 
 
-def compute_idf(tle_mat, sparsity=0.9, epsilon=1e-5, num_of_lay=-1):
+def compute_idf(tle_mat, sparsity=0.95, epsilon=1e-5, num_of_lay=-1):
     # sparsity: <sparsity of cells are counted as 1
     T, L, E = tle_mat.shape
     # return IDF(w_i, T)
