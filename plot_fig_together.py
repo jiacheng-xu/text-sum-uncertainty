@@ -9,6 +9,7 @@ import pandas as pd
 from typing import List
 
 # del matplotlib.font_manager.weight_dict['roman']
+from attention_y_entropy import font_size
 from plot_figures import _read_data, _read_data_position_fig2, normalize_figure1
 
 matplotlib.font_manager._rebuild()
@@ -27,6 +28,9 @@ FIG_SIZE_y = 3
 ysize_fig1 = 4
 ysize_figure2 = 4
 ysize_figure3 = 4
+
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
 
 
 def plot_fig1_single(this_fig, spec, dir, spec_name, SEPS, max_lim=5, bins_num=15, x_ticklabel_vis=True,
@@ -48,15 +52,29 @@ def plot_fig1_single(this_fig, spec, dir, spec_name, SEPS, max_lim=5, bins_num=1
     color = sns.color_palette("coolwarm", 7)
     if showLegend:
         axes1 = sns.distplot(cnndm_bigram_entropies, bins=bins_num,
-                             hist_kws={'range': [0, max_lim]},
+                             hist_kws={'range': [0, max_lim],
+                                       # "histtype": "step", "linewidth": linewidth,
+                                       # "alpha": 1,
+                                       # "color" :'none',
+                                       "edgecolor" : color[0], "hatch": "-",
+                                       # "color": color[0]
+                                       },
                              hist=True,
                              kde=False,
                              color=color[0],
-                             label=f"{ExistingBigram}"
+                             label=f"{ExistingBigram}",
+
                              )
+        axes1.legend(frameon=True)
+
     else:
         axes1 = sns.distplot(cnndm_bigram_entropies, bins=bins_num,
-                             hist_kws={'range': [0, max_lim]},
+                             hist_kws={'range': [0, max_lim],
+                                       # "histtype": "step", "linewidth": linewidth,
+                                       # "color": 'none',
+                                       "edgecolor": color[0], "hatch": "-",
+                                       # "color": color[0]
+                                       },
                              hist=True,
                              kde=False,
                              color=color[0],
@@ -74,6 +92,8 @@ def plot_fig1_single(this_fig, spec, dir, spec_name, SEPS, max_lim=5, bins_num=1
                              color=color[-1],
                              label=f"{NovelBigram}"
                              )
+        axes1.legend(frameon=True)
+
     else:
         axes1 = sns.distplot(cnndm_not_bigram_entropies, bins=bins_num, hist_kws={'range': [0, max_lim]},
                              hist=True,
@@ -84,9 +104,19 @@ def plot_fig1_single(this_fig, spec, dir, spec_name, SEPS, max_lim=5, bins_num=1
     plt.axvline(statistics.median(cnndm_bigram_entropies), color=color[0], linestyle='dashed', linewidth=linewidth)
     plt.axvline(statistics.median(cnndm_not_bigram_entropies), color=color[-1], linestyle='dashed', linewidth=linewidth)
     # axes.legend(prop={'size': 10})
-    axes1.legend(frameon=False)
     # print(f"{statistics.median(cnndm_bigram_entropies), statistics.mean(cnndm_not_bigram_entropies),}")
     print(f"{statistics.median(cnndm_bigram_entropies), statistics.median(cnndm_not_bigram_entropies)}")
+
+    # axes1.set_xticks(list(np.arange(0, 5, 0.5)))
+    # axes1.set_xticklabels(list(np.arange(0, 5, 1)))
+    # axes1.set_xticklabels(list(np.arange(0.5, 5.5, 1)), minor=True)
+
+    axes1.xaxis.set_major_locator(MultipleLocator(1))
+    axes1.xaxis.set_major_formatter(FormatStrFormatter('%d'))
+
+    # For the minor ticks, use no labels; default NullFormatter.
+    axes1.xaxis.set_minor_locator(MultipleLocator(0.5))
+
     if not x_ticklabel_vis:
         plt.setp(axes1.get_xticklabels(), visible=False)
     if not y_ticklabel_vis:
@@ -130,7 +160,7 @@ def draw_x_entropy_y_bigram_count(dir, SEPS=10, FIG_SIZE_x=10, FIG_SIZE_y=3, bin
     plt.axvline(statistics.median(cnndm_bigram_entropies), color=color[0], linestyle='dashed', linewidth=linewidth)
     plt.axvline(statistics.median(cnndm_not_bigram_entropies), color=color[-1], linestyle='dashed', linewidth=linewidth)
     # axes.legend(prop={'size': 10})
-    axes1.legend(frameon=False)
+    # axes1.legend(frameon=False)
     # print(f"{statistics.median(cnndm_bigram_entropies), statistics.mean(cnndm_not_bigram_entropies),}")
     print(f"{statistics.median(cnndm_bigram_entropies), statistics.median(cnndm_not_bigram_entropies),}")
 
@@ -185,22 +215,35 @@ def draw_fig_1(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart):
     # cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
     # xsum_spec_name = 'd_xsum-m_-xsum-full1'
     plot_fig1_single(fig, spec2[0, 0], dir=dir_datadrive, spec_name=cnndm_peg, SEPS=10, data_name='CNN/DM',
-                     x_ticklabel_vis=False, ylim=500, title="PEGASUS")
+                     x_ticklabel_vis=False, ylim=3000, title="PEGASUS")
     plot_fig1_single(fig, spec2[0, 1], dir=dir_datadrive, spec_name=cnndm_bart, SEPS=10, y_ticklabel_vis=False,
-                     x_ticklabel_vis=False, ylim=500, showLegend=True,
+                     x_ticklabel_vis=False, ylim=3000, showLegend=True,
                      title="BART")
-    plot_fig1_single(fig, spec2[1, 0], dir=dir_datadrive, spec_name=xsum_peg, SEPS=10, data_name='XSUM',
-                     ylim=250)
+    plot_fig1_single(fig, spec2[1, 0], dir=dir_datadrive, spec_name=xsum_peg, SEPS=10, data_name='XSum',
+                     ylim=1200)
     plot_fig1_single(fig, spec2[1, 1], dir=dir_datadrive, spec_name=xsum_bart, SEPS=10, y_namelabel_vis=False,
-                     y_ticklabel_vis=False, ylim=250)
+                     y_ticklabel_vis=False, ylim=1200)
+
+    fig.text(0.5, 0.01, 'Prediction Entropy', ha='center', fontsize=font_size)
+    fig.text(0.0, 0.5, 'Count', va='center', rotation='vertical', fontsize=font_size)
+
+    # ax = fig.add_subplot(111)
+    # fig.subplots_adjust(top=0.85)
+    # ax.set_title('axes title')
+    # ax.axis('off')
+    # ax.set_xlabel('xlabel')
+    # ax.set_ylabel('ylabel')
 
     fig.tight_layout()
+    # plt.subplots_adjust(left=0.2,bottom=0.5, right=0.6, top=0.9)
+    # plt.xlabel('asdasdasd',loc='left')
     plt.savefig(f"x_entropy-y_bigram-grid.pdf", dpi=dpi)
     plt.show()
     plt.close()
 
 
 from matplotlib.axes._axes import Axes
+import numpy as np
 
 
 def plot_single_fig2(this_fig, spec, dir, spec_name, SEPS,
@@ -229,9 +272,14 @@ def plot_single_fig2(this_fig, spec, dir, spec_name, SEPS,
                 # notch=True,
                 )
     # axes1.tick_params(which='major', length=5)
-    axes1.set_xticks([0, 2, 4, 6, 8])
-    axes1.set_xticklabels([0.0, 0.2, 0.4, 0.6, 0.8])
+    # axes1.set_xticks(list(np.arange(0,1,0.1)))
+    # axes1.set_xticklabels(list(np.arange(0, 1, 0.1)))
 
+
+    # axes1.xaxis.set_major_locator(MultipleLocator(0.2))
+    #
+    # # For the minor ticks, use no labels; default NullFormatter.
+    # axes1.xaxis.set_minor_locator(MultipleLocator(0.1))
     # for box in axes1['boxes']:
     #     # change outline color
     #     # box.set(color='#7570b3', linewidth=2)
@@ -271,8 +319,9 @@ def draw_fig_2(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart):
     # ax.set_ylabel("Entropy")
     ax.set_xlabel('Relative Position')
 """
-    fig.text(0.5, 0.0, 'Relative Position', ha='center')
-    fig.text(0.0, 0.5, 'Entropy', va='center', rotation='vertical')
+
+    fig.text(0.5, 0.0, 'Relative Position', ha='center', fontsize=font_size)
+    fig.text(0.0, 0.5, 'Entropy', va='center', rotation='vertical', fontsize=font_size)
 
     # cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
     # xsum_spec_name = 'd_xsum-m_-xsum-full1'
@@ -289,7 +338,7 @@ def draw_fig_2(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart):
     plot_single_fig2(fig, spec2[1, 0], dir=dir_datadrive, spec_name=xsum_peg, SEPS=10,
                      x_ticklabel_vis=True,
                      y_ticklabel_vis=True,
-                     data_name="XSUM",
+                     data_name="XSum",
                      )
     plot_single_fig2(fig, spec2[1, 1], dir=dir_datadrive, spec_name=xsum_bart, SEPS=10,
                      x_ticklabel_vis=True,
@@ -307,6 +356,6 @@ if __name__ == '__main__':
     xsum_peg = "d_xsum-m_googlepegasusxsum-full10.95"
     cnndm_bart = "d_cnn_dailymail-m_facebookbartlargecnn-full10.95"
     xsum_bart = 'd_xsum-m_facebookbartlargexsum-full10.95'
-    # draw_fig_1(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart)
+    draw_fig_1(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart)
 
     draw_fig_2(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart)

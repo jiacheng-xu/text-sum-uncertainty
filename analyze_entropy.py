@@ -27,7 +27,7 @@ from typing import List
 import numpy as np
 
 
-def comp_entropy(pred_distribution, nucleus_filter: bool = True, top_p=0.9):
+def comp_entropy(pred_distribution, nucleus_filter: bool = True, top_p=0.95):
     assert np.sum(pred_distribution) > 0.99
     assert np.sum(pred_distribution) < 1.01
     if nucleus_filter:
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         from transformers import PegasusTokenizer
 
         bpe_tokenizer = PegasusTokenizer.from_pretrained(args.model_name)
-        EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
+        EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id, 2]  # <n>
     elif 'gpt' in args.model_name:
         from transformers import GPT2Tokenizer
 

@@ -112,7 +112,7 @@ def _read_data(dir, spec_name, SEPS):
     return df, bigram_entropies, not_bigram_entropies
 
 
-def normalize_figure1(bigram: List, not_bigram: List, cnt=2000):
+def normalize_figure1(bigram: List, not_bigram: List, cnt=10000):
     if len(bigram) + len(not_bigram) > cnt:
         rate = len(bigram) + len(not_bigram)
         ratio = cnt / rate
