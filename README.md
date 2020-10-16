@@ -4,9 +4,11 @@
 
 ArXiv preprint available at [here](https://arxiv.org/abs/2010.07882). 
 
-[Slide Deck](https://github.com/jiacheng-xu/text-sum-uncertainty/blob/master/slide.pdf)
+## [Slide Deck](https://github.com/jiacheng-xu/text-sum-uncertainty/blob/master/slide.pdf)
 
 Author: [Jiacheng Xu](https://www.cs.utexas.edu/~jcxu/), [Shrey Desai](https://shreydesai.github.io/), [Greg Durrett](https://www.cs.utexas.edu/~gdurrett/) from [TAUR Lab](http://taur.cs.utexas.edu/), UT Austin
+
+Contact: jcxu at utexas.edu
 ## About
  In this work, 
  - We analyze summarization decoders by studying on the **entropy**, or uncertainty, of the model's token-level predictions.
