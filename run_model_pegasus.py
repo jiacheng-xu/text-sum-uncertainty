@@ -141,14 +141,14 @@ if __name__ == '__main__':
     batch_size = 17 if args.data_name == 'xsum' else 15
     max_len = 30 if args.data_name == 'xsum' else 80
 
-    split = 'train'
+    split = 'test'
 
     data_generator = load_data(args.dataset_dir, args.data_name,
                                tokenizer_name=args.model_name,
                                split=split,
                                batch_size=batch_size,
                                max_length=args.enc_len,
-                               max_sample_num=args.max_sample_num+30)
+                               max_sample_num=args.max_sample_num + 30)
     model, tokenizer = load_BART_or_PEGASUS(args.model_name)
     device = torch.device(args.device)
     model = model.to(device)

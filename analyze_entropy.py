@@ -1,5 +1,4 @@
 import numpy
-
 from scipy.stats import entropy
 
 from util import parse_arg
@@ -114,10 +113,6 @@ def check_if_bpe_is_a_word(bpe_id):
     if tok[0] in punct_list:
         return True
     return False
-
-
-from transformers import GPT2Tokenizer
-from transformers import BartTokenizer
 
 
 def get_bigram(logit_list: List[int]):

@@ -191,8 +191,10 @@ def parse_arg():
                         default='google/pegasus-cnn_dailymail')
     parser.add_argument("--data_name", help="Name of the dataset to use, xsum or cnn_dailymail.",
                         default='cnn_dailymail')
-    parser.add_argument('--full_data', dest='feature', action='store_true')
-    parser.add_argument('--min_data', dest='feature', action='store_false')
+    parser.add_argument('--full_data', dest='feature', action='store_true',
+                        help="Store the attention data as well (more space)")
+    parser.add_argument('--min_data', dest='feature', action='store_false',
+                        help="Only store prediction data (less space)")
     parser.set_defaults(feature=True)
     parser.add_argument('--prob_meta_dir',
                         default='/mnt/data0/jcxu/data/prob_gpt',
@@ -206,10 +208,12 @@ def parse_arg():
     parser.add_argument('--dataset_dir', help='Location to cache/load the dataset.', default="/mnt/data0/jcxu/datasets")
     parser.add_argument('--split', default='test', help='Which part of the dataset split to use.')
     parser.add_argument('--device', default='cuda:0')
-    parser.add_argument('--nuc_prob', default=0.95, type=float,help='')
+    parser.add_argument('--nuc_prob', default=0.95, type=float,
+                        help='The cumulative probability mass for sampling. 1 means no truncation.')
     parser.add_argument('--trunc_prob', default='nucleus', action='store_true')
     parser.add_argument('--full_prob', default='nucleus', action='store_false')
     parser.set_defaults(nucleus=True)
+
     args = parser.parse_args()
     stream_line_model_name = re.sub(r'[^\w\s]', '', args.model_name)
 

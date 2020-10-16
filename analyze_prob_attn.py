@@ -4,7 +4,7 @@ import os, random, pickle
 import numpy as np
 
 # we are going to show for each timestep, for each layer, what's the majority attention.
-# marjority attention excluding roadmark tokens
+# majority attention excluding roadmark tokens
 # majority
 from typing import List
 import scipy
