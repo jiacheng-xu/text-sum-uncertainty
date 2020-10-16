@@ -1,14 +1,20 @@
 import os
 import argparse
 
+from analyze_entropy import comp_entropy
+
 
 def parse_arg():
     parser = argparse.ArgumentParser(description="Experiment for Text Sum Uncertainty for PEGASUS model.")
     parser.add_argument("--model_name", type=str,
                         help="The name of the PEGASUS model. Expect: google/pegasus-cnn_dailymail or google/pegasus-xsum.",
-                        default='google/pegasus-cnn_dailymail')
+                        # default='google/pegasus-cnn_dailymail',
+                        default='google/pegasus-xsum'
+                        )
     parser.add_argument("--data_name", help="Name of the dataset to use, xsum or cnn_dailymail.",
-                        default='cnn_dailymail')
+                        # default='cnn_dailymail',
+                        default='xsum'
+                        )
     parser.add_argument('--full_data', dest='feature', action='store_true')
     parser.add_argument('--min_data', dest='feature', action='store_false')
     parser.set_defaults(feature=True)
@@ -29,22 +35,28 @@ def parse_arg():
 import random
 import pickle
 
+random.seed(2020)
 from scipy.stats import entropy
 import numpy as np
+import statistics
 
 
 def viz_pred(tokenizer, pred_dist, input_doc, eos_tok, topk=5):
     print(f"Input Doc: {tokenizer.decode(input_doc[:400])}")
     T, vocab_sz = pred_dist.shape
     ent = entropy(pred_dist, axis=-1)
+    avg_ent = float(np.mean(ent))
+    print(f"Mean ent: {avg_ent}")
     eos_flag = False
+    pred_tokens = []
     for t in range(T):
         cur_pred_distb = pred_dist[t]
-        assert sum(cur_pred_distb)>0.99
-        cur_ent = ent[t]
+        assert sum(cur_pred_distb) > 0.99
+        cur_ent = comp_entropy(cur_pred_distb)
 
         indices = np.argsort(cur_pred_distb)[::-1].tolist()
         pred_tok = indices[0]
+        pred_tokens.append(pred_tok)
         if pred_tok in eos_tok:
             if eos_flag:
                 break
@@ -61,6 +73,7 @@ def viz_pred(tokenizer, pred_dist, input_doc, eos_tok, topk=5):
         print_topk = "\t".join(['{:0.2f} {:>10}'.format(cand[0], cand[1]) for cand in cand_pairs])
         print('Ent: {:0.2f}\t{}'.format(cur_ent, print_topk)
               )
+    print(f"Pred: {tokenizer.decode(pred_tokens)}")
 
 
 if __name__ == '__main__':

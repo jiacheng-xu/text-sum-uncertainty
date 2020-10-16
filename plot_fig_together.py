@@ -50,13 +50,15 @@ def plot_fig1_single(this_fig, spec, dir, spec_name, SEPS, max_lim=5, bins_num=1
     # axes = sns.kdeplot(bigram_entropies, shade=True,cumulative=True)
     # axes = sns.distplot(bigram_entropies,rug=True)
     color = sns.color_palette("coolwarm", 7)
+    color = ['#333f48', '#bf5700']
     if showLegend:
         axes1 = sns.distplot(cnndm_bigram_entropies, bins=bins_num,
                              hist_kws={'range': [0, max_lim],
                                        # "histtype": "step", "linewidth": linewidth,
                                        # "alpha": 1,
                                        # "color" :'none',
-                                       "edgecolor" : color[0], "hatch": "-",
+                                       "edgecolor": color[0],
+                                       # "hatch": "-",
                                        # "color": color[0]
                                        },
                              hist=True,
@@ -214,18 +216,24 @@ def draw_fig_1(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart):
     # plt.rcParams["font.family"] = "Times New Roman"
     # cnndm_spec_name = 'd_cnn_dailymail-m_ymail-full1'
     # xsum_spec_name = 'd_xsum-m_-xsum-full1'
-    plot_fig1_single(fig, spec2[0, 0], dir=dir_datadrive, spec_name=cnndm_peg, SEPS=10, data_name='CNN/DM',
-                     x_ticklabel_vis=False, ylim=3000, title="PEGASUS")
+    plot_fig1_single(fig, spec2[0, 0], dir=dir_datadrive, spec_name=cnndm_peg, SEPS=10,
+                     # data_name='CNN/DM',
+                     x_ticklabel_vis=False,
+                     y_ticklabel_vis=False,
+                     ylim=3000, title="PEGASUS")
     plot_fig1_single(fig, spec2[0, 1], dir=dir_datadrive, spec_name=cnndm_bart, SEPS=10, y_ticklabel_vis=False,
-                     x_ticklabel_vis=False, ylim=3000, showLegend=True,
+                     x_ticklabel_vis=False, ylim=3000,
+                     showLegend=True,
                      title="BART")
-    plot_fig1_single(fig, spec2[1, 0], dir=dir_datadrive, spec_name=xsum_peg, SEPS=10, data_name='XSum',
+    plot_fig1_single(fig, spec2[1, 0], dir=dir_datadrive, spec_name=xsum_peg, SEPS=10,
+                     # data_name='XSum',
+                     y_ticklabel_vis=False,
                      ylim=1200)
     plot_fig1_single(fig, spec2[1, 1], dir=dir_datadrive, spec_name=xsum_bart, SEPS=10, y_namelabel_vis=False,
                      y_ticklabel_vis=False, ylim=1200)
 
-    fig.text(0.5, 0.01, 'Prediction Entropy', ha='center', fontsize=font_size)
-    fig.text(0.0, 0.5, 'Count', va='center', rotation='vertical', fontsize=font_size)
+    # fig.text(0.5, 0.01, 'Prediction Entropy', ha='center', fontsize=font_size)
+    # fig.text(0.0, 0.5, 'Count', va='center', rotation='vertical', fontsize=font_size)
 
     # ax = fig.add_subplot(111)
     # fig.subplots_adjust(top=0.85)
@@ -274,7 +282,6 @@ def plot_single_fig2(this_fig, spec, dir, spec_name, SEPS,
     # axes1.tick_params(which='major', length=5)
     # axes1.set_xticks(list(np.arange(0,1,0.1)))
     # axes1.set_xticklabels(list(np.arange(0, 1, 0.1)))
-
 
     # axes1.xaxis.set_major_locator(MultipleLocator(0.2))
     #

@@ -43,6 +43,7 @@ from transformers import BartTokenizer
 import random
 import string
 
+random.seed(2020)
 from typing import List
 
 

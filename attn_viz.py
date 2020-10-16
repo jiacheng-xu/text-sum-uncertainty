@@ -3,10 +3,9 @@ from typing import List
 import scipy
 
 from analyze_prob_attn import colorize, compute_idf, visualize_tfidf
-from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
 import os, random
 
-from util import convert_enc_attn, logger
+from util import convert_enc_attn, logger, parse_arg
 
 
 def plot_single_head_attention(attention, src_seq, effective_doc_len, k=5):
@@ -136,23 +135,24 @@ from scipy.stats import entropy
 
 if __name__ == '__main__':
     print("Looking at attention")
-
-    if 'pegasus' in MODEL_NAME:
+    # from data_collection import CUR_DIR, PROB_META_DIR, spec_name, MODEL_NAME, DATA_NAME
+    args = parse_arg()
+    if 'pegasus' in args.model_name:
         from transformers import PegasusTokenizer
 
-        bpe_tokenizer = PegasusTokenizer.from_pretrained(MODEL_NAME)
+        bpe_tokenizer = PegasusTokenizer.from_pretrained( args.model_name)
         EOS_TOK_IDs = [106, bpe_tokenizer.eos_token_id]  # <n>
         bos_token_id = 0
     else:
         raise NotImplementedError
     # visualize_distribution(None,None)
-    files = os.listdir(CUR_DIR)
+    files = os.listdir(args.cur_dir)
     random.shuffle(files)
     files = files[:20]
 
     BOS_TOKEN = 0
     for f in files:
-        with open(os.path.join(CUR_DIR, f), 'rb') as fd:
+        with open(os.path.join(args.cur_dir, f), 'rb') as fd:
             data = pickle.load(fd)
 
         attentions, pred_distb, logits, input_doc = data['attentions'], data['pred_distributions'], data['logits'], \

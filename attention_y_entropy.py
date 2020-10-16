@@ -201,22 +201,42 @@ def plot_single_box(this_fig, spec_config, input_data, step_size=0.5, ent_max=5,
     last_inp_mean, cur_inp_mean, cur_pred_mean, next_pred_mean, atte_ent_mean = input_data
     bar0, bar1, bar2, bar3, bar01, bar012 = read_stack_data(last_inp_mean, cur_inp_mean, cur_pred_mean, next_pred_mean)
     colorblind = sns.color_palette("coolwarm", 4)
+    # colorblind = sns.color_palette("Set2")
+
+    # colorblind = sns.color_palette()
 
     catnames = ['$y_{t-2}$', '$y_{t-1}$',
                 '$y_{t}$', '$y_{t+1}$']
+    linewidth = 1.5
 
     axes = this_fig.add_subplot(spec_config)
     x = list(np.arange(0, 5, 0.5))
-    axes.bar(x, bar0, color=colorblind[0], label=catnames[0], width=step_size)
+    axes.bar(x, bar0, color=colorblind[0],
+             # edgecolor=colorblind[0],linewidth=linewidth,
+             label=catnames[0], width=step_size,
 
-    axes.bar(x, bar1, bottom=bar0, color=colorblind[1], label=catnames[1], width=step_size
+             # hatch='/'
+             )
+
+    axes.bar(x, bar1, bottom=bar0,
+             # edgecolor='white', linewidth=1,
+             label=catnames[1], width=step_size,
+             # hatch='-',
+             facecolor=colorblind[1],
+             # histtype='step', facecolor='g',
+             # alpha=0.75
              # ,hatch='-'
              )
-    axes.bar(x, bar2, bottom=bar01, color=colorblind[3], label=catnames[2], width=step_size
+    axes.bar(x, bar2, bottom=bar01,
+             # edgecolor=colorblind[3], linewidth=0,
+             label=catnames[2], width=step_size, facecolor=colorblind[3],
+             # histtype='step',
+             # hatch='|'
              # ,hatch='|'
              )
-    axes.bar(x, bar3, bottom=bar012, color=colorblind[2], label=catnames[3], width=step_size
-             # hatch='/'
+    axes.bar(x, bar3, bottom=bar012, color=colorblind[2], label=catnames[3], width=step_size,
+             # edgecolor=colorblind[2],             linewidth=linewidth,
+             # hatch='\\'
              )
     # axes = sns.boxplot(x=x, y=y, palette=colorblind, showfliers=False)
 
@@ -447,10 +467,18 @@ def plot_ant_entropy(cnndm_peg, xsum_peg, cnndm_bart, xsum_bart):
     # df = pd.DataFrame(data=d)
     ax = fig.add_subplot(1, 1, 1)
     # line1 = sns.lineplot(x=list(np.arange(0, 5, step_size)), y=cnndm_peg[-1], label='PEG$_{C}$', markers='x')
-    plt.plot(list(np.arange(0, 5, step_size)), cnndm_peg[-1], label='PEG$_{C}$', marker='+')
-    plt.plot(list(np.arange(0, 5, step_size)), xsum_peg[-1], label='PEG$_{X}$', marker='x')
-    plt.plot(list(np.arange(0, 5, step_size)), cnndm_bart[-1], label='BART$_{C}$', ls='--')
-    plt.plot(list(np.arange(0, 5, step_size)), xsum_bart[-1], label='BART$_{X}$', ls=':')
+    plt.plot(list(np.arange(0, 5, step_size)), cnndm_peg[-1], label='PEG$_{C}$', marker='+',
+             # color='k'
+             )
+    plt.plot(list(np.arange(0, 5, step_size)), xsum_peg[-1], label='PEG$_{X}$', marker='x',
+             # color='k'
+             )
+    plt.plot(list(np.arange(0, 5, step_size)), cnndm_bart[-1], label='BART$_{C}$', ls='--', marker='+',
+             # color='k'
+             )
+    plt.plot(list(np.arange(0, 5, step_size)), xsum_bart[-1], label='BART$_{X}$', ls='--', marker='x',
+             # color='k'
+             )
 
     plt.legend(loc='best', ncol=2, frameon=False)
 

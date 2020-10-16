@@ -1,0 +1,12 @@
+from transformers import PegasusTokenizer, PegasusForConditionalGeneration
+
+PGE_ARTICLE = \
+  'Tests on 1,414 people showed that part of the immune system - called T-cells - was able to attack regions of the virus that were common to many different strains of flu.The team at University College London says it may be possible to develop a "universal flu vaccine".However, virologists warned flu was an expert at mutating.The body produces antibodies in response to an infection or flu vaccine that bind to the surface of a virus.But flu is skilled at changing its appearance and rendering antibodies useless, which is why a new flu vaccine is needed each year.T-cells are a different weapon in the immune system.They are able to target the hidden parts of flu, which change less frequently.This means that after being exposed to one strain of flu, people may have resistance to other strains too.Tests on nearly 1,500 unvaccinated people over the course of four years indicated 43% had "cross-protection" to seasonal and pandemic flus.The data was published in the American Journal of Respiratory and Critical Care Medicine.However, the flu vaccines given to adults do not generate a T-cells response, meaning a new type of vaccine is needed.Prof Andrew Hayward, from University College London, told the BBC News website that developing a T-cell vaccine for flu could protect against a wide range of strains - a "universal flu vaccine".He said: "It may increase the level of protection we can give to elderly people, who currently often have an immune response to the current vaccine which is not as good as in young people."From time-to-time we predict the antibodies that go into the seasonal flu vaccine wrong, so we get a mismatch between the vaccine and the circulating flu."He said this cross-protection could minimise the impact of such a mismatch and play a role in pandemics when new flu viruses emerged."Having a cross-protective vaccine could allow it to be used much earlier in the pandemic'
+# mname = "google/pegasus-xsum"
+mname = "google/pegasus-cnn_dailymail"
+model = PegasusForConditionalGeneration.from_pretrained(mname)
+tok = PegasusTokenizer.from_pretrained(mname)
+batch = tok.prepare_seq2seq_batch(src_texts=[PGE_ARTICLE])  # don't need tgt_text for inference
+gen = model.generate(**batch)  # for forward pass: model(**batch)
+summary = tok.batch_decode(gen, skip_special_tokens=True)
+print(summary)
